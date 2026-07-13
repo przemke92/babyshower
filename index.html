@@ -515,9 +515,13 @@ DATA.forEach((cat, ci) => {
 // 3. W bocznym menu wejdź w "Realtime Database" -> "Create Database" (tryb testowy wystarczy na start).
 // 4. W zakładce "Rules" wklej regułę z instrukcji, którą dostałeś w czacie, i kliknij "Publish".
 const firebaseConfig = {
-  apiKey: "WKLEJ_TUTAJ",
-  databaseURL: "https://TWOJ-PROJEKT-default-rtdb.firebaseio.com",
-  projectId: "WKLEJ_TUTAJ",
+  apiKey: "AIzaSyDjOGq7ZkPhFJBp4l75U6OuumQQzKirtJU",
+  authDomain: "babyshowerjanek.firebaseapp.com",
+  databaseURL: "https://babyshowerjanek-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "babyshowerjanek",
+  storageBucket: "babyshowerjanek.firebasestorage.app",
+  messagingSenderId: "602563291143",
+  appId: "1:602563291143:web:e96c040237dd72962e22a2",
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -533,6 +537,10 @@ const searchBox = document.getElementById('searchBox');
 function slugSafeName(str){
   return str.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 }
+
+// Draw the list immediately with local data, so the page never appears empty
+// even if the Firebase connection is slow or briefly unavailable.
+render();
 
 // Live-listens for changes, so every open tab updates instantly for everyone.
 claimsRef.on('value', (snapshot) => {
