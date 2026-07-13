@@ -85,7 +85,7 @@
     margin-top: 6px;
   }
 
-  /* clothesline divider, echoing the invitation's line+heart motif */
+  /* clothesline divider */
   .divider{
     display:flex;
     align-items:center;
@@ -270,12 +270,6 @@
     margin-top: 4px;
   }
 
-  .claimed-by{
-    font-size: 13.5px;
-    color: var(--ink-soft);
-  }
-  .claimed-by b{ color: var(--ink); font-weight: 500; }
-
   button.claim-btn, button.release-btn{
     font-family: 'Jost', sans-serif;
     font-size: 13px;
@@ -300,76 +294,6 @@
   button.release-btn:hover{
     border-color: var(--taken);
     color: var(--taken);
-  }
-
-  .hidden{ display:none !important; }
-
-  /* ---------- MODAL ---------- */
-  .modal-overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(58,53,47,0.45);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding: 20px;
-    z-index: 50;
-  }
-  .modal{
-    background: var(--cream);
-    border-radius: 16px;
-    padding: 30px 28px;
-    max-width: 360px;
-    width: 100%;
-    text-align:center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  }
-  .modal .script-small{
-    font-family: 'Pinyon Script', cursive;
-    color: var(--blue-deep);
-    font-size: 34px;
-    margin: 0 0 4px;
-  }
-  .modal p{
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 17px;
-    color: var(--ink-soft);
-    margin: 0 0 18px;
-  }
-  .modal input{
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    font-family: 'Jost', sans-serif;
-    font-size: 15px;
-    margin-bottom: 16px;
-  }
-  .modal input:focus{ outline: none; border-color: var(--blue); }
-  .modal-actions{
-    display:flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  .modal-actions button{
-    flex: 1;
-    padding: 10px 0;
-    border-radius: 8px;
-    font-family: 'Jost', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  .modal-actions .confirm{
-    background: var(--blue);
-    border: 1px solid var(--blue);
-    color: white;
-  }
-  .modal-actions .confirm:hover{ background: var(--blue-deep); }
-  .modal-actions .cancel{
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--ink-soft);
   }
 
   footer{
@@ -405,8 +329,6 @@
 
   <footer>z góry dziękujemy za każdy gest &nbsp;·&nbsp; ♥</footer>
 </div>
-
-<div id="modalRoot"></div>
 
 <script>
 const DATA = [
@@ -502,18 +424,12 @@ const DATA = [
   ]},
 ];
 
-// build stable ids
 DATA.forEach((cat, ci) => {
   cat.items.forEach((it, ii) => {
     it.id = "c" + ci + "i" + ii;
   });
 });
 
-// ====== FIREBASE SETUP ======
-// 1. Wejdź na https://console.firebase.google.com i utwórz darmowy projekt.
-// 2. Dodaj aplikację webową (ikonka "</>") i skopiuj poniższe wartości z wygenerowanego firebaseConfig.
-// 3. W bocznym menu wejdź w "Realtime Database" -> "Create Database" (tryb testowy wystarczy na start).
-// 4. W zakładce "Rules" wklej regułę z instrukcji, którą dostałeś w czacie, i kliknij "Publish".
 const firebaseConfig = {
   apiKey: "AIzaSyDjOGq7ZkPhFJBp4l75U6OuumQQzKirtJU",
   authDomain: "babyshowerjanek.firebaseapp.com",
@@ -527,22 +443,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const claimsRef = db.ref('claims');
 
-let claims = {}; // { itemId: { name } }
-let pendingItem = null; // item awaiting claim confirmation
+let claims = {};
 
 const categoriesEl = document.getElementById('categories');
-const modalRoot = document.getElementById('modalRoot');
 const searchBox = document.getElementById('searchBox');
 
 function slugSafeName(str){
   return str.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 }
 
-// Draw the list immediately with local data, so the page never appears empty
-// even if the Firebase connection is slow or briefly unavailable.
 render();
 
-// Live-listens for changes, so every open tab updates instantly for everyone.
 claimsRef.on('value', (snapshot) => {
   claims = snapshot.val() || {};
   render();
@@ -557,49 +468,12 @@ async function saveClaims(){
   }
 }
 
-function openClaimModal(item){
-  pendingItem = item;
-  modalRoot.innerHTML = `
-    <div class="modal-overlay" id="overlay">
-      <div class="modal">
-        <p class="script-small">Zaklep prezent</p>
-        <p>„${slugSafeName(item.name)}” — podaj swoje imię. Nie będzie ono pokazywane innym odwiedzającym stronę.</p>
-        <input type="text" id="nameInput" placeholder="Twoje imię" maxlength="40">
-        <div class="modal-actions">
-          <button class="cancel" id="cancelBtn">Anuluj</button>
-          <button class="confirm" id="confirmBtn">Zaklep</button>
-        </div>
-      </div>
-    </div>
-  `;
-  const input = document.getElementById('nameInput');
-  input.focus();
-  document.getElementById('cancelBtn').onclick = closeModal;
-  document.getElementById('overlay').onclick = (e) => { if(e.target.id === 'overlay') closeModal(); };
-  document.getElementById('confirmBtn').onclick = confirmClaim;
-  input.addEventListener('keydown', (e) => { if(e.key === 'Enter') confirmClaim(); });
-}
-
-function closeModal(){
-  modalRoot.innerHTML = '';
-  pendingItem = null;
-}
-
-async function confirmClaim(){
-  const input = document.getElementById('nameInput');
-  const name = input.value.trim();
-  if(!name){
-    input.style.borderColor = '#b0724f';
-    return;
+async function toggleClaim(item){
+  if(claims[item.id]){
+    delete claims[item.id];
+  } else {
+    claims[item.id] = { name: "Zarezerwowano" };
   }
-  claims[pendingItem.id] = { name };
-  await saveClaims();
-  closeModal();
-  render();
-}
-
-async function releaseClaim(item){
-  delete claims[item.id];
   await saveClaims();
   render();
 }
@@ -668,12 +542,11 @@ function render(){
       if(claim){
         btn.className = 'release-btn';
         btn.textContent = 'Anuluj rezerwację';
-        btn.onclick = () => releaseClaim(it);
       } else {
         btn.className = 'claim-btn';
         btn.textContent = 'Zaklep dla siebie';
-        btn.onclick = () => openClaimModal(it);
       }
+      btn.onclick = () => toggleClaim(it);
       bottomRow.appendChild(btn);
 
       itemsDiv.appendChild(card);
