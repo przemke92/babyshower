@@ -6,6 +6,8 @@
 <title>It's a boy! — Lista prezentów</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --cream: #faf6f0;
@@ -507,6 +509,20 @@ DATA.forEach((cat, ci) => {
   });
 });
 
+// ====== FIREBASE SETUP ======
+// 1. Wejdź na https://console.firebase.google.com i utwórz darmowy projekt.
+// 2. Dodaj aplikację webową (ikonka "</>") i skopiuj poniższe wartości z wygenerowanego firebaseConfig.
+// 3. W bocznym menu wejdź w "Realtime Database" -> "Create Database" (tryb testowy wystarczy na start).
+// 4. W zakładce "Rules" wklej regułę z instrukcji, którą dostałeś w czacie, i kliknij "Publish".
+const firebaseConfig = {
+  apiKey: "WKLEJ_TUTAJ",
+  databaseURL: "https://TWOJ-PROJEKT-default-rtdb.firebaseio.com",
+  projectId: "WKLEJ_TUTAJ",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const claimsRef = db.ref('claims');
+
 let claims = {}; // { itemId: { name } }
 let pendingItem = null; // item awaiting claim confirmation
 
@@ -518,21 +534,18 @@ function slugSafeName(str){
   return str.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 }
 
-async function loadClaims(){
-  try{
-    const res = await window.storage.get('claims', true);
-    claims = res && res.value ? JSON.parse(res.value) : {};
-  }catch(e){
-    claims = {};
-  }
+// Live-listens for changes, so every open tab updates instantly for everyone.
+claimsRef.on('value', (snapshot) => {
+  claims = snapshot.val() || {};
   render();
-}
+});
 
 async function saveClaims(){
   try{
-    await window.storage.set('claims', JSON.stringify(claims), true);
+    await claimsRef.set(claims);
   }catch(e){
     console.error('Nie udało się zapisać rezerwacji', e);
+    alert('Nie udało się zapisać rezerwacji — sprawdź połączenie z internetem i spróbuj ponownie.');
   }
 }
 
@@ -666,8 +679,6 @@ function render(){
 }
 
 searchBox.addEventListener('input', render);
-
-loadClaims();
 </script>
 
 </body>
