@@ -496,9 +496,11 @@ function render(){
     btn.addEventListener('click', () => {
       if (confirm('Na pewno usuwasz tę rezerwację?')) {
         const id = btn.dataset.id;
-        claimsRef.child(id).remove();
+        delete claims[id]; // update local view immediately, don't wait for the round-trip
         myClaims.delete(id);
         saveMyClaims();
+        render();
+        claimsRef.child(id).remove();
       }
     });
   });
@@ -510,10 +512,13 @@ function render(){
       const name = input.value.trim();
       if (!name) return;
       const id = form.dataset.id;
-      claimsRef.child(id).set({ name, ts: Date.now() });
+      const entry = { name, ts: Date.now() };
+      claims[id] = entry; // update local view immediately, don't wait for the round-trip
       myClaims.add(id);
       saveMyClaims();
       openClaimFormId = null;
+      render();
+      claimsRef.child(id).set(entry);
     });
   });
 
