@@ -24,7 +24,7 @@
 
   *{ box-sizing: border-box; }
   html{ scroll-behavior: smooth; }
-  body{ margin:0; background: var(--cream); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; line-height: 1.5; }
+  body{ margin:0; background: var(--cream); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; line-height: 1.5; padding-bottom: 56px; }
 
   /* --- HERO TEXT HEADER --- */
   header.hero{ text-align: center; padding: 44px 20px 30px; }
@@ -75,6 +75,62 @@
   .my-section .category-title::after{ background: var(--blue); opacity: 0.4; }
   .my-section .category-title .chevron,
   .my-section .category-title .toggle-label{ display: none; }
+
+  /* --- Sticky "my reservations" cart bar --- */
+  #myCartBar{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 60;
+    display: none; /* toggled to flex/block via JS once something is reserved */
+    flex-direction: column;
+    background: var(--cream, #faf6f0);
+    border-top: 1px solid var(--blue);
+    box-shadow: 0 -6px 20px rgba(58,53,47,0.12);
+  }
+  #myCartBar.is-visible{ display: flex; }
+
+  .cart-toggle{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    background: var(--blue-deep);
+    color: white;
+    border: none;
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+  }
+  .cart-toggle .cart-icon{ font-size: 17px; }
+  .cart-toggle .cart-label{ flex: 1; }
+  .cart-toggle .cart-count{
+    background: white;
+    color: var(--blue-deep);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cart-toggle .cart-chevron{ font-size: 13px; transition: transform .2s ease; }
+  #myCartBar.is-open .cart-chevron{ transform: rotate(180deg); }
+
+  .cart-panel{
+    max-height: 0;
+    overflow-y: auto;
+    transition: max-height .25s ease;
+    background: white;
+    padding: 0 16px;
+  }
+  #myCartBar.is-open .cart-panel{
+    max-height: min(50vh, 420px);
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
+  }
+  .cart-panel .item{ margin-bottom: 10px; }
+  .cart-panel .item:last-child{ margin-bottom: 0; }
   .item-link a{ font-size: 12px; color: var(--blue-deep); text-decoration: none; border-bottom: 1px solid var(--blue); }
   .item-bottom{ display:flex; align-items:center; justify-content: space-between; gap: 10px; margin-top: 2px; }
   .taken-by{ font-size: 12px; color: var(--ink-soft); }
@@ -113,6 +169,16 @@
   <button type="button" class="expand-all-btn" id="expandAllBtn">Rozwiń wszystkie</button>
 
   <div id="categories"></div>
+</div>
+
+<div id="myCartBar">
+  <div class="cart-panel" id="cartPanel"></div>
+  <button type="button" id="cartToggleBtn" class="cart-toggle">
+    <span class="cart-icon">🎁</span>
+    <span class="cart-label">Twoje rezerwacje</span>
+    <span class="cart-count" id="cartCount">0</span>
+    <span class="cart-chevron" id="cartChevron">▴</span>
+  </button>
 </div>
 
 <script>
@@ -267,6 +333,11 @@ const categoriesEl = document.getElementById('categories');
 const searchBox = document.getElementById('searchBox');
 const progressText = document.getElementById('progressText');
 const progressFill = document.getElementById('progressFill');
+const myCartBar = document.getElementById('myCartBar');
+const cartToggleBtn = document.getElementById('cartToggleBtn');
+const cartCountEl = document.getElementById('cartCount');
+const cartPanelEl = document.getElementById('cartPanel');
+let isCartOpen = false;
 
 // Which categories are manually expanded (by category name). Starts empty = all collapsed.
 const expandedCategories = new Set();
@@ -342,28 +413,21 @@ function render(){
   categoriesEl.innerHTML = '';
   let anyVisible = false;
 
-  // --- "Moje rezerwacje" — only shows once you've claimed at least one thing on this device ---
-  if (!q) {
-    const mine = [];
-    DATA.forEach(cat => cat.items.forEach(it => {
-      if (claims[it.id] && myClaims.has(it.id)) mine.push(it);
-    }));
-    if (mine.length > 0) {
-      const myEl = document.createElement('div');
-      myEl.className = 'category my-section';
-      const title = document.createElement('div');
-      title.className = 'category-title is-open';
-      title.innerHTML = `
-        <span class="cat-name">Moje rezerwacje</span>
-        <span class="category-count">${mine.length}</span>
-      `;
-      myEl.appendChild(title);
-      const itemsEl = document.createElement('div');
-      itemsEl.className = 'items';
-      mine.forEach(it => itemsEl.appendChild(buildItemCard(it)));
-      myEl.appendChild(itemsEl);
-      categoriesEl.appendChild(myEl);
-    }
+  // --- Sticky "Twoje rezerwacje" bar — always reachable, even mid-scroll ---
+  const mine = [];
+  DATA.forEach(cat => cat.items.forEach(it => {
+    if (claims[it.id] && myClaims.has(it.id)) mine.push(it);
+  }));
+
+  if (mine.length > 0) {
+    myCartBar.classList.add('is-visible');
+    cartCountEl.textContent = mine.length;
+    cartPanelEl.innerHTML = '';
+    mine.forEach(it => cartPanelEl.appendChild(buildItemCard(it)));
+  } else {
+    myCartBar.classList.remove('is-visible');
+    myCartBar.classList.remove('is-open');
+    isCartOpen = false;
   }
 
   DATA.forEach(cat => {
@@ -424,7 +488,11 @@ function render(){
     });
   });
 
-  categoriesEl.querySelectorAll('.release-btn').forEach(btn => {
+  const releaseBtns = [
+    ...categoriesEl.querySelectorAll('.release-btn'),
+    ...cartPanelEl.querySelectorAll('.release-btn'),
+  ];
+  releaseBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm('Na pewno usuwasz tę rezerwację?')) {
         const id = btn.dataset.id;
@@ -449,8 +517,15 @@ function render(){
     });
   });
 
+  myCartBar.classList.toggle('is-open', isCartOpen);
+
   updateProgress();
 }
+
+cartToggleBtn.addEventListener('click', () => {
+  isCartOpen = !isCartOpen;
+  myCartBar.classList.toggle('is-open', isCartOpen);
+});
 
 claimsRef.on('value', (snapshot) => {
   claims = snapshot.val() || {};
