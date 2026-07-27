@@ -67,6 +67,14 @@
   .badge{ font-size: 10px; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
   .badge.free{ color: var(--free); border: 1px solid var(--free); }
   .badge.taken{ color: white; background: var(--taken); }
+  .badge.mine{ color: white; background: var(--blue-deep); }
+  .item.is-mine{ background: var(--blue-pale); border-color: var(--blue); }
+
+  .my-section{ margin-bottom: 40px; }
+  .my-section .category-title{ cursor: default; }
+  .my-section .category-title::after{ background: var(--blue); opacity: 0.4; }
+  .my-section .category-title .chevron,
+  .my-section .category-title .toggle-label{ display: none; }
   .item-link a{ font-size: 12px; color: var(--blue-deep); text-decoration: none; border-bottom: 1px solid var(--blue); }
   .item-bottom{ display:flex; align-items:center; justify-content: space-between; gap: 10px; margin-top: 2px; }
   .taken-by{ font-size: 12px; color: var(--ink-soft); }
@@ -90,13 +98,13 @@
     <img src="image.png" alt="Zaproszenie Baby Shower" class="hero-image">
   </div>
   <div class="divider"><span class="rope"></span><span class="heart">♥</span><span class="rope"></span></div>
-  <p class="subtitle">Zapraszamy Was serdecznie na Baby Shower — poniżej znajdziecie listę rzeczy do wyprawki. Jeśli chcecie coś podarować, zaklepcie to dla siebie, żebyśmy uniknęli powtórek. Dziękujemy! 💙</p>
+  <p class="subtitle">Zapraszamy Was serdecznie na Baby Shower — poniżej znajdziecie listę rzeczy do wyprawki. Jeśli chcecie coś podarować, zarezerwujcie to dla siebie, żebyśmy uniknęli powtórek. Dziękujemy! 💙</p>
   <p class="event-line">6 września 2026 · Wigwam - Łysa Góra, Kicin</p>
 </header>
 
 <div class="wrap">
   <div class="progress-card">
-    <span class="progress-text" id="progressText"><b>0</b> z <b>0</b> rzeczy zaklepanych</span>
+    <span class="progress-text" id="progressText"><b>0</b> z <b>0</b> rzeczy zarezerwowanych</span>
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   </div>
 
@@ -243,6 +251,18 @@ const claimsRef = db.ref('claims');
 let claims = {};
 let openClaimFormId = null;
 
+// Items claimed BY THIS BROWSER — stored locally, only affects how it looks to you.
+// This is what lets us show "Zaklepane przez Ciebie" and only let you undo your own claims.
+let myClaims = new Set();
+try{
+  myClaims = new Set(JSON.parse(localStorage.getItem('myClaims') || '[]'));
+}catch(e){
+  myClaims = new Set();
+}
+function saveMyClaims(){
+  try{ localStorage.setItem('myClaims', JSON.stringify([...myClaims])); }catch(e){ /* ignore */ }
+}
+
 const categoriesEl = document.getElementById('categories');
 const searchBox = document.getElementById('searchBox');
 const progressText = document.getElementById('progressText');
@@ -263,14 +283,88 @@ function updateProgress(){
     total++;
     if (claims[it.id]) taken++;
   }));
-  progressText.innerHTML = `<b>${taken}</b> z <b>${total}</b> rzeczy zaklepanych`;
+  progressText.innerHTML = `<b>${taken}</b> z <b>${total}</b> rzeczy zarezerwowanych`;
   progressFill.style.width = total ? (taken / total * 100) + '%' : '0%';
+}
+
+function buildItemCard(it){
+  const taken = claims[it.id];
+  const isMine = taken && myClaims.has(it.id);
+  const itemEl = document.createElement('div');
+  itemEl.className = 'item' + (taken ? (isMine ? ' is-mine' : ' is-taken') : '');
+
+  let badgeClass = 'free', badgeText = 'Wolne';
+  if (isMine) { badgeClass = 'mine'; badgeText = 'Zarezerwowane przez Ciebie'; }
+  else if (taken) { badgeClass = 'taken'; badgeText = 'Zarezerwowane'; }
+
+  let html = `
+    <div class="item-top">
+      <span class="item-name">${escapeHtml(it.name)}</span>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>
+  `;
+  if (it.link) {
+    html += `<div class="item-link"><a href="${it.link}" target="_blank" rel="noopener noreferrer">Zobacz propozycję</a></div>`;
+  }
+
+  if (isMine) {
+    html += `
+      <div class="item-bottom">
+        <span></span>
+        <button class="release-btn" data-id="${it.id}">Usuń rezerwację</button>
+      </div>
+    `;
+  } else if (taken) {
+    // Reserved by someone else — no name shown, no way to cancel it from here.
+    html += `<div class="item-bottom"><span></span></div>`;
+  } else if (openClaimFormId === it.id) {
+    html += `
+      <form class="claim-form" data-id="${it.id}">
+        <input type="text" placeholder="Twoje imię" required maxlength="40" autofocus>
+        <button type="submit">Potwierdź</button>
+      </form>
+    `;
+  } else {
+    html += `
+      <div class="item-bottom">
+        <span></span>
+        <button class="claim-btn" data-id="${it.id}">Rezerwuję</button>
+      </div>
+    `;
+  }
+
+  itemEl.innerHTML = html;
+  return itemEl;
 }
 
 function render(){
   const q = searchBox.value.trim().toLowerCase();
   categoriesEl.innerHTML = '';
   let anyVisible = false;
+
+  // --- "Moje rezerwacje" — only shows once you've claimed at least one thing on this device ---
+  if (!q) {
+    const mine = [];
+    DATA.forEach(cat => cat.items.forEach(it => {
+      if (claims[it.id] && myClaims.has(it.id)) mine.push(it);
+    }));
+    if (mine.length > 0) {
+      const myEl = document.createElement('div');
+      myEl.className = 'category my-section';
+      const title = document.createElement('div');
+      title.className = 'category-title is-open';
+      title.innerHTML = `
+        <span class="cat-name">Moje rezerwacje</span>
+        <span class="category-count">${mine.length}</span>
+      `;
+      myEl.appendChild(title);
+      const itemsEl = document.createElement('div');
+      itemsEl.className = 'items';
+      mine.forEach(it => itemsEl.appendChild(buildItemCard(it)));
+      myEl.appendChild(itemsEl);
+      categoriesEl.appendChild(myEl);
+    }
+  }
 
   DATA.forEach(cat => {
     const visibleItems = cat.items
@@ -309,47 +403,7 @@ function render(){
     const itemsEl = document.createElement('div');
     itemsEl.className = 'items' + (isOpen ? '' : ' is-collapsed');
 
-    visibleItems.forEach(it => {
-      const taken = claims[it.id];
-      const itemEl = document.createElement('div');
-      itemEl.className = 'item' + (taken ? ' is-taken' : '');
-
-      let html = `
-        <div class="item-top">
-          <span class="item-name">${escapeHtml(it.name)}</span>
-          <span class="badge ${taken ? 'taken' : 'free'}">${taken ? 'Zaklepane' : 'Wolne'}</span>
-        </div>
-      `;
-      if (it.link) {
-        html += `<div class="item-link"><a href="${it.link}" target="_blank" rel="noopener noreferrer">Zobacz propozycję</a></div>`;
-      }
-
-      if (taken) {
-        html += `
-          <div class="item-bottom">
-            <span class="taken-by">Zaklepane przez: ${escapeHtml(taken.name || '')}</span>
-            <button class="release-btn" data-id="${it.id}">Odklepuję</button>
-          </div>
-        `;
-      } else if (openClaimFormId === it.id) {
-        html += `
-          <form class="claim-form" data-id="${it.id}">
-            <input type="text" placeholder="Twoje imię" required maxlength="40" autofocus>
-            <button type="submit">Potwierdź</button>
-          </form>
-        `;
-      } else {
-        html += `
-          <div class="item-bottom">
-            <span></span>
-            <button class="claim-btn" data-id="${it.id}">Zaklepuję</button>
-          </div>
-        `;
-      }
-
-      itemEl.innerHTML = html;
-      itemsEl.appendChild(itemEl);
-    });
+    visibleItems.forEach(it => itemsEl.appendChild(buildItemCard(it)));
 
     catEl.appendChild(itemsEl);
     categoriesEl.appendChild(catEl);
@@ -372,8 +426,11 @@ function render(){
 
   categoriesEl.querySelectorAll('.release-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (confirm('Na pewno odklepujesz ten prezent?')) {
-        claimsRef.child(btn.dataset.id).remove();
+      if (confirm('Na pewno usuwasz tę rezerwację?')) {
+        const id = btn.dataset.id;
+        claimsRef.child(id).remove();
+        myClaims.delete(id);
+        saveMyClaims();
       }
     });
   });
@@ -384,7 +441,10 @@ function render(){
       const input = form.querySelector('input');
       const name = input.value.trim();
       if (!name) return;
-      claimsRef.child(form.dataset.id).set({ name, ts: Date.now() });
+      const id = form.dataset.id;
+      claimsRef.child(id).set({ name, ts: Date.now() });
+      myClaims.add(id);
+      saveMyClaims();
       openClaimFormId = null;
     });
   });
