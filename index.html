@@ -273,7 +273,10 @@ function render(){
   let anyVisible = false;
 
   DATA.forEach(cat => {
-    const visibleItems = cat.items.filter(it => it.name.toLowerCase().includes(q));
+    const visibleItems = cat.items
+      .filter(it => it.name.toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => (claims[a.id] ? 1 : 0) - (claims[b.id] ? 1 : 0));
     if (visibleItems.length === 0) return;
     anyVisible = true;
 
