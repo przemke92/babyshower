@@ -49,8 +49,15 @@
   .progress-fill{ height: 100%; background: var(--blue); border-radius: 6px; transition: width .4s ease; }
   .search-box{ width: 100%; padding: 11px 16px; border-radius: 10px; border: 1px solid var(--line); background: white; font-size: 15px; margin-bottom: 30px; font-family: 'Jost', sans-serif; }
   .category{ margin-bottom: 34px; }
-  .category-title{ font-family: 'Cormorant Garamond', serif; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; font-size: 19px; color: var(--blue-deep); display:flex; align-items:center; gap: 14px; margin-bottom: 12px; }
+  .category-title{ font-family: 'Cormorant Garamond', serif; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; font-size: 19px; color: var(--blue-deep); display:flex; align-items:center; gap: 14px; margin-bottom: 12px; cursor: pointer; user-select: none; }
   .category-title::after{ content:""; flex:1; height:1px; background: var(--line); }
+  .category-title .chevron{ order: 3; font-size: 13px; transition: transform .2s ease; flex-shrink: 0; }
+  .category-title.is-open .chevron{ transform: rotate(180deg); }
+  .category-title .toggle-label{ order: 4; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.05em; text-transform: none; color: var(--ink-soft); flex-shrink: 0; }
+  .category-count{ order: 2; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0; color: var(--ink-soft); flex-shrink: 0; }
+  .items.is-collapsed{ display: none; }
+  .expand-all-btn{ display:block; margin: 0 0 24px auto; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; color: var(--blue-deep); background: transparent; border: 1px solid var(--blue); border-radius: 8px; padding: 7px 16px; cursor: pointer; }
+  .expand-all-btn:hover{ background: var(--blue-pale); }
   .items{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   @media (max-width: 620px){ .items{ grid-template-columns: 1fr; } }
   .item{ background: white; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display:flex; flex-direction: column; gap: 6px; }
@@ -94,6 +101,8 @@
   </div>
 
   <input type="text" class="search-box" id="searchBox" placeholder="Szukaj produktu (np. wózek, kocyk, body)…">
+
+  <button type="button" class="expand-all-btn" id="expandAllBtn">Rozwiń wszystkie</button>
 
   <div id="categories"></div>
 </div>
@@ -192,6 +201,13 @@ const DATA = [
     { name: "Miękka szczotka do masażu głowy i ciała (1 szt.)" },
     { name: "Sól fizjologiczna" },
   ]},
+  { category: "Karmienie piersią", items: [
+    { name: "Laktator" },
+    { name: "Poduszka do karmienia" },
+    { name: "Wkładki laktacyjne jednorazowe (2 szt.)" },
+    { name: "Lanolina" },
+    { name: "Butelka 120 ml", link: "https://www.dobreliski.pl/pl/p/Zestaw-startowy-ZERO-ZERO-z-butelka-ze-smoczkiem-o-regulowanym-przeplywie-180-ml-Suavinex/16344" },
+  ]},
   { category: "Pierwsze zabawki", items: [
     { name: "Zabawka kontrastowa — opcja 1", link: "https://www.dobreliski.pl/pl/p/Dwustronna-ksiazeczka-sensoryczna-przytulny-mis-Taf-Toys/49811" },
     { name: "Zabawka kontrastowa — opcja 2", link: "https://www.dobreliski.pl/pl/p/Duze-karty-kontrastowe-0-mies.-3-mies.-CzuCzu-Bright-Junior-Media-Justyna-Han/41407" },
@@ -203,7 +219,7 @@ const DATA = [
     { name: "Wózek" },
     { name: "Fotelik samochodowy" },
     { name: "Baza do fotelika" },
-    { name: "Torba do wózka", link: "https://answear.com/p/boss-torba-do-wozka-z-mata-do-przewijania-j53178-1603889?channable=001d1f66726f6e74656e645f696400505059322d414b4b30364b5f39395857&utm_source=google&utm_medium=cpc&utm_campaign=CSS_performance_max_all_products_kids_072024&utm_id=21442229671&gad_source=1&gad_campaignid=21431766891&gbraid=0AAAAADtlxlVYTsJ89q4FskQoejoUOsGjW" },
+    { name: "Torba do wózka" },
     { name: "Lusterko do samochodu" },
   ]},
 ];
@@ -232,6 +248,9 @@ const searchBox = document.getElementById('searchBox');
 const progressText = document.getElementById('progressText');
 const progressFill = document.getElementById('progressFill');
 
+// Which categories are manually expanded (by category name). Starts empty = all collapsed.
+const expandedCategories = new Set();
+
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str;
@@ -258,16 +277,34 @@ function render(){
     if (visibleItems.length === 0) return;
     anyVisible = true;
 
+    const isSearching = q.length > 0;
+    const isOpen = isSearching || expandedCategories.has(cat.category);
+
     const catEl = document.createElement('div');
     catEl.className = 'category';
 
     const title = document.createElement('div');
-    title.className = 'category-title';
-    title.textContent = cat.category;
+    title.className = 'category-title' + (isOpen ? ' is-open' : '');
+    title.innerHTML = `
+      <span class="cat-name">${escapeHtml(cat.category)}</span>
+      <span class="category-count">${visibleItems.length}</span>
+      <span class="toggle-label">${isOpen ? 'zwiń' : 'rozwiń'}</span>
+      <span class="chevron">▾</span>
+    `;
+    if (!isSearching) {
+      title.addEventListener('click', () => {
+        if (expandedCategories.has(cat.category)) {
+          expandedCategories.delete(cat.category);
+        } else {
+          expandedCategories.add(cat.category);
+        }
+        render();
+      });
+    }
     catEl.appendChild(title);
 
     const itemsEl = document.createElement('div');
-    itemsEl.className = 'items';
+    itemsEl.className = 'items' + (isOpen ? '' : ' is-collapsed');
 
     visibleItems.forEach(it => {
       const taken = claims[it.id];
@@ -319,6 +356,9 @@ function render(){
     categoriesEl.innerHTML = '<div class="empty-state">Brak pasujących produktów.</div>';
   }
 
+  expandAllBtn.textContent = (expandedCategories.size === DATA.length) ? 'Zwiń wszystkie' : 'Rozwiń wszystkie';
+  expandAllBtn.style.display = q ? 'none' : 'block';
+
   // wire up buttons/forms for this render pass
   categoriesEl.querySelectorAll('.claim-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -355,6 +395,16 @@ claimsRef.on('value', (snapshot) => {
 });
 
 searchBox.addEventListener('input', render);
+
+const expandAllBtn = document.getElementById('expandAllBtn');
+expandAllBtn.addEventListener('click', () => {
+  if (expandedCategories.size === DATA.length) {
+    expandedCategories.clear();
+  } else {
+    DATA.forEach(cat => expandedCategories.add(cat.category));
+  }
+  render();
+});
 
 render();
 </script>
