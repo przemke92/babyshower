@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Podgląd rezerwacji — tylko dla Was</title>
+<title>Podgląd rezerwacji</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -60,35 +60,60 @@
   }
   .summary b{ color: var(--ink); font-weight: 500; }
 
-  .category{ margin-bottom: 34px; }
-  .category-title{
+  .section-title{
     font-family: 'Cormorant Garamond', serif;
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--blue-deep);
-    display:flex;
-    align-items:center;
-    gap: 12px;
-    margin-bottom: 10px;
+    margin: 0 0 14px;
   }
-  .category-title::after{ content:""; flex:1; height:1px; background: var(--line); }
 
-  .row{
-    display:flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 14.5px;
+  .person-card{
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
   }
-  .row:last-child{ border-bottom: none; }
-  .row .name{ color: var(--ink); }
-  .row .who{ color: var(--blue-deep); font-weight: 500; text-align: right; white-space: nowrap; }
-  .row .who.free{ color: var(--free); font-weight: 400; }
-  .row .ts{ display:block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
+  .person-name{
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display:flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .person-count{
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+  .person-items{ font-size: 14.5px; color: var(--ink-soft); }
+  .person-items div{ padding: 3px 0; }
+  .person-items div::before{ content: "· "; color: var(--blue); }
+
+  .activity-card{
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 4px 20px;
+    margin-bottom: 40px;
+  }
+  .activity-row{
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .activity-row:last-child{ border-bottom: none; }
+  .activity-row .when{ display:block; font-size: 11.5px; color: var(--ink-soft); margin-bottom: 2px; }
+  .activity-row .what b{ color: var(--blue-deep); font-weight: 500; }
+
+  .empty{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 20px 0 30px; }
 
   .loading{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 40px 0; }
   .note{
@@ -104,9 +129,14 @@
 <body>
 <div class="wrap">
   <h1>Podgląd rezerwacji</h1>
-  <p class="lead">Tylko dla Was — nie udostępniajcie tego linku gościom 🙂</p>
   <div class="summary" id="summary">Ładowanie…</div>
-  <div id="categories"><div class="loading">Wczytywanie rezerwacji…</div></div>
+
+  <h2 class="section-title">Rezerwacje wg osoby</h2>
+  <div id="byPerson"><div class="loading">Wczytywanie…</div></div>
+
+  <h2 class="section-title">Ostatnie akcje</h2>
+  <div class="activity-card" id="activity"></div>
+
   <p class="note">To jest widok tylko do odczytu — nic tu nie da się kliknąć ani zmienić.</p>
 </div>
 
@@ -252,42 +282,73 @@ function formatTs(ts){
   return `${dd}.${mm} o ${hh}:${min}`;
 }
 
-const categoriesEl = document.getElementById('categories');
+function findItemById(id){
+  for (const cat of DATA) {
+    const found = cat.items.find(it => it.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+const byPersonEl = document.getElementById('byPerson');
+const activityEl = document.getElementById('activity');
 const summaryEl = document.getElementById('summary');
 
 function render(claims){
-  categoriesEl.innerHTML = '';
-  let total = 0, taken = 0;
+  byPersonEl.innerHTML = '';
+  activityEl.innerHTML = '';
 
-  DATA.forEach(cat => {
-    const catEl = document.createElement('div');
-    catEl.className = 'category';
-    const title = document.createElement('div');
-    title.className = 'category-title';
-    title.textContent = cat.category;
-    catEl.appendChild(title);
-
-    cat.items.forEach(it => {
-      total++;
-      const claim = claims[it.id];
-      if(claim) taken++;
-
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = `
-        <span class="name">${escapeHtml(it.name)}</span>
-        <span class="who ${claim ? '' : 'free'}">
-          ${claim ? escapeHtml(claim.name || '—') : 'wolne'}
-          ${claim && claim.ts ? `<span class="ts">${formatTs(claim.ts)}</span>` : ''}
-        </span>
-      `;
-      catEl.appendChild(row);
-    });
-
-    categoriesEl.appendChild(catEl);
-  });
+  const entries = Object.entries(claims); // [id, {name, ts}]
+  const total = DATA.reduce((n, cat) => n + cat.items.length, 0);
+  const taken = entries.length;
 
   summaryEl.innerHTML = `<b>${taken}</b> z <b>${total}</b> rzeczy zarezerwowanych`;
+
+  if (entries.length === 0) {
+    byPersonEl.innerHTML = '<div class="empty">Nikt jeszcze nic nie zarezerwował.</div>';
+    activityEl.innerHTML = '<div class="empty">Brak aktywności.</div>';
+    return;
+  }
+
+  // --- Group by person ---
+  const byPerson = {}; // name -> [itemName, ...]
+  entries.forEach(([id, claim]) => {
+    const item = findItemById(id);
+    if (!item) return;
+    const name = claim.name || '—';
+    if (!byPerson[name]) byPerson[name] = [];
+    byPerson[name].push(item.name);
+  });
+
+  Object.keys(byPerson).sort((a, b) => a.localeCompare(b, 'pl')).forEach(name => {
+    const items = byPerson[name];
+    const card = document.createElement('div');
+    card.className = 'person-card';
+    card.innerHTML = `
+      <div class="person-name">${escapeHtml(name)} <span class="person-count">(${items.length})</span></div>
+      <div class="person-items">${items.map(n => `<div>${escapeHtml(n)}</div>`).join('')}</div>
+    `;
+    byPersonEl.appendChild(card);
+  });
+
+  // --- Recent activity feed, newest first ---
+  const activity = entries
+    .map(([id, claim]) => {
+      const item = findItemById(id);
+      return item ? { name: claim.name || '—', itemName: item.name, ts: claim.ts || 0 } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.ts - a.ts);
+
+  activity.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+    row.innerHTML = `
+      <span class="when">${a.ts ? formatTs(a.ts) : ''}</span>
+      <span class="what"><b>${escapeHtml(a.name)}</b> zarezerwował(a): ${escapeHtml(a.itemName)}</span>
+    `;
+    activityEl.appendChild(row);
+  });
 }
 
 try{
