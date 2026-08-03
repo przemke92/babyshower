@@ -408,6 +408,27 @@ function buildItemCard(it){
   return itemEl;
 }
 
+function findItemById(id){
+  for (const cat of DATA) {
+    const found = cat.items.find(it => it.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+// Fire-and-forget push notification via ntfy.sh — no backend needed.
+// If this fails (e.g. blocked by an ad-blocker), the reservation itself is unaffected.
+const NTFY_TOPIC = 'babyshowerjanek-rezerwacje-8k2p';
+function notifyHost(item, name){
+  try{
+    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: 'POST',
+      body: `${name} zarezerwował(a): ${item.name}`,
+      headers: { 'Title': 'Nowa rezerwacja 🎁' },
+    }).catch(() => { /* silently ignore — never block the reservation on this */ });
+  }catch(e){ /* ignore */ }
+}
+
 function render(){
   const q = searchBox.value.trim().toLowerCase();
   categoriesEl.innerHTML = '';
@@ -505,7 +526,7 @@ function render(){
     });
   });
 
-  categoriesEl.querySelectorAll('.claim-form').forEach(form => {
+categoriesEl.querySelectorAll('.claim-form').forEach(form => {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const input = form.querySelector('input');
@@ -519,6 +540,8 @@ function render(){
       openClaimFormId = null;
       render();
       claimsRef.child(id).set(entry);
+      const item = findItemById(id);
+      if (item) notifyHost(item, name);
     });
   });
 
