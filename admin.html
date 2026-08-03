@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podgląd rezerwacji — tylko dla Was</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --cream: #faf6f0;
+    --ink: #3a352f;
+    --ink-soft: #6b6459;
+    --blue: #7c94a8;
+    --blue-deep: #55738b;
+    --blue-pale: #e4ebf0;
+    --line: #d9cfc0;
+    --free: #6b8f71;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    line-height: 1.5;
+    padding-bottom: 60px;
+  }
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 40px 20px 0; }
+
+  h1{
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: clamp(24px, 5vw, 34px);
+    text-align: center;
+    margin: 0 0 4px;
+    color: var(--blue-deep);
+  }
+  .lead{
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 16px;
+    margin-bottom: 30px;
+  }
+
+  .summary{
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 30px;
+  }
+  .summary b{ color: var(--ink); font-weight: 500; }
+
+  .category{ margin-bottom: 34px; }
+  .category-title{
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 16px;
+    color: var(--blue-deep);
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .category-title::after{ content:""; flex:1; height:1px; background: var(--line); }
+
+  .row{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+  }
+  .row:last-child{ border-bottom: none; }
+  .row .name{ color: var(--ink); }
+  .row .who{ color: var(--blue-deep); font-weight: 500; text-align: right; white-space: nowrap; }
+  .row .who.free{ color: var(--free); font-weight: 400; }
+  .row .ts{ display:block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
+
+  .loading{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 40px 0; }
+  .note{
+    text-align:center;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 40px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Podgląd rezerwacji</h1>
+  <p class="lead">Tylko dla Was — nie udostępniajcie tego linku gościom 🙂</p>
+  <div class="summary" id="summary">Ładowanie…</div>
+  <div id="categories"><div class="loading">Wczytywanie rezerwacji…</div></div>
+  <p class="note">To jest widok tylko do odczytu — nic tu nie da się kliknąć ani zmienić.</p>
+</div>
+
+<script>
+const DATA = [
+  { category: "Tkaniny — kocyki, otulacze, pieluszki", items: [
+    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 1", link: "https://www.dobreliski.pl/pl/p/Otulacz-ze-100-welny-merino-cream-premium-collection-My-Memi/31725" },
+    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 2", link: "https://www.dobreliski.pl/pl/p/Kocyk-bambusowy-z-falbanka-85x105-cream-My-Memi/23901" },
+    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 3", link: "https://www.dobreliski.pl/pl/p/Lekki-dzianinowy-kocyk-mgielka-Niebieski-Lullalove/10910" },
+    { name: "Kocyk ocieplany - wełna merino (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Cieply-kocyk-ze-100-welny-merino-cream-premium-collection-My-Memi/31724" },
+    { name: "Rożek (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Rozek-BERRY-HENRY-La-Millou/43612" },
+    { name: "Otulacz 120x120 / naleśnik (2 szt.)" },
+    { name: "Pieluszka 30x30 — opcja 1", link: "https://www.dobreliski.pl/pl/p/Pieluszka-bambusowa-Classic-Ecru-bamboo-line/10764" },
+    { name: "Pieluszka 30x30 — opcja 2", link: "https://www.dobreliski.pl/pl/p/Pieluszka-bambusowa-Classic-Niebieski-bamboo-line/10766" },
+    { name: "Pieluszka 30x30 — opcja 3", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Little-Goose-Little-Dutch/44862" },
+    { name: "Pieluszka 30x30 — opcja 4", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Forest-Adventure-Denim-Blue-Little-Dutch/39357" },
+    { name: "Pieluszka 30x30 — opcja 5", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Pure-Denim-Blue-Little-Dutch/44860" },
+    { name: "Pieluszka 30x30 — opcja 6", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Baby-Bunny-Little-Dutch/44863" },
+    { name: "Pieluszka 75x75 — opcja 1", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Little-Goose-Little-Dutch/44862" },
+    { name: "Pieluszka 75x75 — opcja 2", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Forest-Adventure-Denim-Blue-Little-Dutch/39357" },
+    { name: "Pieluszka 75x75 — opcja 3", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Pure-Denim-Blue-Little-Dutch/44860" },
+    { name: "Pieluszka 75x75 — opcja 4", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Baby-Bunny-Little-Dutch/44863" },
+    { name: "Otulacz do fotelika (1 szt.)", link: "https://muminky.pl/pl/p/Otulacz-Do-Fotelika-Samochodowego-z-Kapturkiem-Baranek-Ecru/1549" },
+    { name: "Poduszka do wózka (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Poduszka-antywstrzasowa-ANGELS-WINGS-TEDDY-BEAR-CREAM-La-Millou/38864" },
+    { name: "Prześcieradło do łóżeczka (2 szt.)", link: "https://manufakturamateracy.pl/przescieradlo-do-duzej-dostawki-lub-kolyski-dopasowane-z-gumka-na-materac" },
+    { name: "Prześcieradło do gondoli (2 szt.)", link: "https://www.dobreliski.pl/pl/p/Przescieradlo-do-gondoli-40x80-smietanka-Puuki/50024" },
+    { name: "Gniazdo niemowlęce (1 szt.)", link: "https://queenbaby.pl/pl/p/Kokon-niemowlecy-kokon-dla-dziecka-muslinowy-barankowy-baranek-zaklinacz-snow/420" },
+    { name: "Śpiworek do spania (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Spiworek-do-spania-TOG-2%2C5-BERRY-HENRY-La-Millou/43613" },
+    { name: "Śpiworek do wózka", link: "https://www.dobreliski.pl/pl/p/Spiworek-do-wozka-Baby-Multi-Teddy-Bear-CREAM-La-Millou/45623" },
+    { name: "Podkład pod prześcieradło (2 szt.)" },
+  ]},
+  { category: "Garderoba noworodka", items: [
+    { name: "Pajacyk rozm. 56 (3 szt.)" },
+    { name: "Pajacyk rozm. 62 (5 szt.)" },
+    { name: "Pajacyk rozm. 62/68" },
+    { name: "Body z długim rękawem, rozm. 56 (4 szt.)" },
+    { name: "Body z długim rękawem, rozm. 62 (6 szt.)" },
+    { name: "Body z krótkim rękawem, rozm. 56 (2 szt.)" },
+    { name: "Body z krótkim rękawem, rozm. 62 (4 szt.)" },
+    { name: "Półśpiochy / spodenki, rozm. 62 (4 szt.)" },
+    { name: "Bluza rozpinana, rozm. 62 (2 szt.)" },
+    { name: "Kombinezon polarowy (miś), rozm. 62-68 (1 szt.)", link: "https://hannaslove.pl/produkt/kombinezon-z-welny-merino-z-uszami-dust-melange-huttelihut/" },
+    { name: "Kombinezon zimowy ocieplany, rozm. 62-68 (1 szt.)", link: "https://eevi.pl/pl/p/Kombinezon-niemowlecy-baranek-jasny-bezowy/7031" },
+    { name: "Czapeczka bawełniana (2 szt.)" },
+    { name: "Czapeczka zimowa, rozm. 40 (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Podwojna-czapka-beanie-z-welny-merino-LATTE-Pink-no-more/43930" },
+    { name: "Chustka / szalik (1 szt.)" },
+    { name: "Skarpetki (4 szt.)" },
+    { name: "Body długi rękaw, rozm. 68" },
+    { name: "Rękawiczki" },
+    { name: "Spodnie rosnące, rozm. 56" },
+    { name: "Spodnie rosnące, rozm. 62" },
+  ]},
+  { category: "Pokój dziecięcy", items: [
+    { name: "Łóżeczko niemowlęce (1 szt.)" },
+    { name: "Materac do dostawki (1 szt.)", link: "https://allegro.pl/oferta/materac-do-dostawki-pasuje-do-kinderkraft-neste-up-grow-air-cami-12838109619" },
+    { name: "Lampka nocna (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Duza-lampka-led-z-PILOTEM-MIS-NIEBIESKI-bezpieczna-dla-Twojego-dziecka-Rabbitfriends/11731" },
+    { name: "Organizer na kosmetyki (1 szt.)" },
+    { name: "Dostawka do łóżka (1 szt.)" },
+    { name: "Kosz na pieluchy (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Kosz-na-pieluchy-Eco-Touch-Shnuggle/39221" },
+    { name: "Podgrzewacz do butelek (1 szt.)" },
+    { name: "Niania elektroniczna (1 szt.)" },
+    { name: "Wanienka (1 szt.)", link: "https://mamabrum.eu/1291-skladana-wanienka-dla-dziecka-8w1-ze-stojakiem-lezaczkiem-termometrem-i-akcesoriami-szara-dla-n" },
+    { name: "Wkład do wanienki (1 szt.)" },
+    { name: "Butelka z funkcją grzania na spacery (1 szt.)" },
+    { name: "Stojak do wanienki (1 szt.)" },
+    { name: "Mata edukacyjna (1 szt.)", link: "https://kinderkraft.pl/produkty/4smart?color=wielokolorowy" },
+    { name: "Sterylizator (1 szt.)" },
+    { name: "Przewijak (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Przewijak-MATTY%2C-Cappuccino-LEANDER/24838" },
+    { name: "Pojemnik na mokre chusteczki (1 szt.)" },
+  ]},
+  { category: "Higiena / pielęgnacja / apteczka", items: [
+    { name: "Pampersy, rozm. 1 (1 szt.)" },
+    { name: "Pampersy, rozm. 2 (2 szt.)" },
+    { name: "Smoczek 0+ (2 szt.)" },
+    { name: "Mokre chusteczki (4 szt.)" },
+    { name: "Duże waciki (4 szt.)" },
+    { name: "Ręczniki z kapturkiem (2 szt.)", link: "https://www.dobreliski.pl/pl/p/Bambusowy-recznik-alpacas-My-Memi/48473" },
+    { name: "Olejek ze słodkich migdałów (2 szt.)" },
+    { name: "Mydełko od urodzenia (2 szt.)" },
+    { name: "Uniwersalny płyn do mycia (1 szt.)" },
+    { name: "Waciki, patyczki do uszu (1 szt.)" },
+    { name: "Gaziki jałowe (1 szt.)" },
+    { name: "Nożyczki do paznokci (1 szt.)" },
+    { name: "Aplikator do kataru (1 szt.)" },
+    { name: "Inhalator (1 szt.)" },
+    { name: "Termometr (1 szt.)" },
+    { name: "Lek przeciwgorączkowy (1 szt.)" },
+    { name: "Etui na smoczek (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Etui-na-smoczek-Kula-Ball-Powder-Blue-Mushie/22750" },
+    { name: "Termometr do wanny (1 szt.)" },
+    { name: "Myjka bambusowa (1 szt.)" },
+    { name: "Termofor z pestkami wiśni (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Termofor-Cherrypad-Minky-Piasek-Pustyni-Nature-solution/20820" },
+    { name: "Szczotka na ciemieniuchę (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Szczotka-na-ciemieniuche-dla-niemowlat-Lullalove/35556" },
+    { name: "Witamina D" },
+    { name: "Kropelki na kolki" },
+    { name: "Miękka szczotka do masażu głowy i ciała (1 szt.)" },
+    { name: "Sól fizjologiczna" },
+  ]},
+  { category: "Karmienie piersią", items: [
+    { name: "Laktator" },
+    { name: "Poduszka do karmienia" },
+    { name: "Wkładki laktacyjne jednorazowe (2 szt.)" },
+    { name: "Lanolina" },
+    { name: "Butelka 120 ml", link: "https://www.dobreliski.pl/pl/p/Zestaw-startowy-ZERO-ZERO-z-butelka-ze-smoczkiem-o-regulowanym-przeplywie-180-ml-Suavinex/16344" },
+  ]},
+  { category: "Pierwsze zabawki", items: [
+    { name: "Zabawka kontrastowa — opcja 1", link: "https://www.dobreliski.pl/pl/p/Dwustronna-ksiazeczka-sensoryczna-przytulny-mis-Taf-Toys/49811" },
+    { name: "Zabawka kontrastowa — opcja 2", link: "https://www.dobreliski.pl/pl/p/Duze-karty-kontrastowe-0-mies.-3-mies.-CzuCzu-Bright-Junior-Media-Justyna-Han/41407" },
+    { name: "Książka kontrastowa (1 szt.)" },
+    { name: "Szmatka / przytulanka (1 szt.)" },
+    { name: "Miś szumiś (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Moonie-NATUR-2.0-szumiacy-mis-z-lampka-POLAR/33117" },
+  ]},
+  { category: "Poza domem", items: [
+    { name: "Wózek" },
+    { name: "Fotelik samochodowy" },
+    { name: "Baza do fotelika" },
+    { name: "Torba do wózka" },
+    { name: "Lusterko do samochodu" },
+  ]},
+];
+DATA.forEach((cat, ci) => { cat.items.forEach((it, ii) => { it.id = "c" + ci + "i" + ii; }); });
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDjOGq7ZkPhFJBp4l75U6OuumQQzKirtJU",
+  authDomain: "babyshowerjanek.firebaseapp.com",
+  databaseURL: "https://babyshowerjanek-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "babyshowerjanek",
+  storageBucket: "babyshowerjanek.firebasestorage.app",
+  messagingSenderId: "602563291143",
+  appId: "1:602563291143:web:e96c040237dd72962e22a2",
+};
+
+function escapeHtml(str){
+  return str.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+}
+
+function formatTs(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}.${mm} o ${hh}:${min}`;
+}
+
+const categoriesEl = document.getElementById('categories');
+const summaryEl = document.getElementById('summary');
+
+function render(claims){
+  categoriesEl.innerHTML = '';
+  let total = 0, taken = 0;
+
+  DATA.forEach(cat => {
+    const catEl = document.createElement('div');
+    catEl.className = 'category';
+    const title = document.createElement('div');
+    title.className = 'category-title';
+    title.textContent = cat.category;
+    catEl.appendChild(title);
+
+    cat.items.forEach(it => {
+      total++;
+      const claim = claims[it.id];
+      if(claim) taken++;
+
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <span class="name">${escapeHtml(it.name)}</span>
+        <span class="who ${claim ? '' : 'free'}">
+          ${claim ? escapeHtml(claim.name || '—') : 'wolne'}
+          ${claim && claim.ts ? `<span class="ts">${formatTs(claim.ts)}</span>` : ''}
+        </span>
+      `;
+      catEl.appendChild(row);
+    });
+
+    categoriesEl.appendChild(catEl);
+  });
+
+  summaryEl.innerHTML = `<b>${taken}</b> z <b>${total}</b> rzeczy zarezerwowanych`;
+}
+
+try{
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  db.ref('claims').on('value', (snapshot) => {
+    render(snapshot.val() || {});
+  }, (err) => {
+    summaryEl.textContent = 'Błąd wczytywania danych — sprawdź połączenie.';
+    console.error(err);
+  });
+}catch(e){
+  summaryEl.textContent = 'Błąd inicjalizacji Firebase.';
+  console.error(e);
+}
+</script>
+</body>
+</html>
