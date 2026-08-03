@@ -424,9 +424,9 @@ function notifyHost(item, name){
     fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
       method: 'POST',
       body: `${name} zarezerwował(a): ${item.name}`,
-      headers: { 'Title': 'Nowa rezerwacja 🎁' },
-    }).catch(() => { /* silently ignore — never block the reservation on this */ });
-  }catch(e){ /* ignore */ }
+      headers: { 'Title': 'Nowa rezerwacja' },
+    }).catch((err) => { console.error('ntfy: nie udało się wysłać powiadomienia', err); });
+  }catch(e){ console.error('ntfy: błąd przy wysyłce powiadomienia', e); }
 }
 
 function render(){
