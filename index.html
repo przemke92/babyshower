@@ -317,41 +317,52 @@ const claimsRef = db.ref('claims');
 let claims = {};
 let openClaimFormId = null;
 
-// Anonymous visit log — just a timestamp, no name/IP/identity involved.
+// Anonymous visit log — timestamp + a per-browser random ID + coarse device type.
+// No name, no IP, no exact identity — just enough to tell "was that me?" apart from a guest.
 // Throttled so refreshing the page repeatedly doesn't spam the log.
-//
-// TEMPORARY DEBUG BADGE — small text in the top-left corner showing what happened.
-// Safe to remove once we confirm visit logging works (just delete this block and
-// the #debugStatus div in the HTML above).
-const debugStatusEl = document.createElement('div');
-debugStatusEl.style.cssText = 'position:fixed;top:4px;left:4px;z-index:999;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:3px 6px;border-radius:6px;font-family:monospace;max-width:90vw;';
-debugStatusEl.textContent = 'log wejścia: start...';
-document.body.appendChild(debugStatusEl);
+
+function getOrCreateVisitorId(){
+  try{
+    let id = localStorage.getItem('siteVisitorId');
+    if (!id) {
+      id = 'v-' + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('siteVisitorId', id);
+    }
+    return id;
+  }catch(e){ return 'v-unknown'; }
+}
+
+function getDeviceLabel(){
+  const ua = navigator.userAgent || '';
+  let device = 'Komputer';
+  if (/iPhone/i.test(ua)) device = 'iPhone';
+  else if (/iPad/i.test(ua)) device = 'iPad';
+  else if (/Android/i.test(ua)) device = 'Android';
+
+  let browser = 'przeglądarka';
+  if (/Edg\//i.test(ua)) browser = 'Edge';
+  else if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) browser = 'Chrome';
+  else if (/CriOS/i.test(ua)) browser = 'Chrome';
+  else if (/FxiOS|Firefox/i.test(ua)) browser = 'Firefox';
+  else if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) browser = 'Safari';
+
+  return `${device}, ${browser}`;
+}
 
 (function logVisit(){
   try{
     const THIRTY_MIN = 30 * 60 * 1000;
     const last = Number(localStorage.getItem('lastVisitLogged') || 0);
-    const sinceLast = Date.now() - last;
-    if (sinceLast > THIRTY_MIN) {
-      debugStatusEl.textContent = 'log wejścia: wysyłam...';
-      db.ref('visits').push({ ts: Date.now() })
-        .then(() => {
-          localStorage.setItem('lastVisitLogged', String(Date.now()));
-          debugStatusEl.textContent = 'log wejścia: OK ✓';
-        })
-        .catch((err) => {
-          debugStatusEl.textContent = 'log wejścia: BŁĄD — ' + (err && err.message ? err.message : err);
-          console.error('Nie udało się zapisać wejścia (sprawdź reguły Firebase dla "visits")', err);
-        });
-    } else {
-      const minsLeft = Math.ceil((THIRTY_MIN - sinceLast) / 60000);
-      debugStatusEl.textContent = `log wejścia: pominięto (throttle, jeszcze ${minsLeft} min)`;
+    if (Date.now() - last > THIRTY_MIN) {
+      db.ref('visits').push({
+        ts: Date.now(),
+        visitorId: getOrCreateVisitorId(),
+        device: getDeviceLabel(),
+      })
+        .then(() => { localStorage.setItem('lastVisitLogged', String(Date.now())); })
+        .catch((err) => { console.error('Nie udało się zapisać wejścia (sprawdź reguły Firebase dla "visits")', err); });
     }
-  }catch(e){
-    debugStatusEl.textContent = 'log wejścia: WYJĄTEK — ' + (e && e.message ? e.message : e);
-    console.error('Błąd logowania wejścia', e);
-  }
+  }catch(e){ console.error('Błąd logowania wejścia', e); }
 })();
 
 // Items claimed BY THIS BROWSER — stored locally, only affects how it looks to you.
