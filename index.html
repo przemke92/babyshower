@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baby Shower w Kicinie!</title>
+<title>It's a boy! — Lista prezentów</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -233,7 +233,7 @@ const DATA = [
   { category: "Pokój dziecięcy", items: [
     { name: "Łóżeczko niemowlęce (1 szt.)" },
     { name: "Materac do dostawki (1 szt.)", link: "https://allegro.pl/oferta/materac-do-dostawki-pasuje-do-kinderkraft-neste-up-grow-air-cami-12838109619" },
-    { name: "Lampka nocna (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Duza-lampka-led-z-PILOTEM-MIS-BIALY-bezpieczna-dla-Twojego-dziecka-Rabbitfriends-52-0043/11729?edgelid=Cj0KCQjw-MDTBhCgARIsAKAkdlQp0LcPBH8Hr9bCc8D07Vm8xb0aMBRaMX2SIHzEFlzxMgRYDNTpPoMaAs5HEALw_wcB&gad_source=1&gad_campaignid=17181153265&gbraid=0AAAAACvDXkoOwvvQcfOJD5Mv0i5w9sF5F&gclid=Cj0KCQjw-MDTBhCgARIsAKAkdlQp0LcPBH8Hr9bCc8D07Vm8xb0aMBRaMX2SIHzEFlzxMgRYDNTpPoMaAs5HEALw_wcB" },
+    { name: "Lampka nocna (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Duza-lampka-led-z-PILOTEM-MIS-NIEBIESKI-bezpieczna-dla-Twojego-dziecka-Rabbitfriends/11731" },
     { name: "Organizer na kosmetyki (1 szt.)" },
     { name: "Dostawka do łóżka (1 szt.)" },
     { name: "Kosz na pieluchy (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Kosz-na-pieluchy-Eco-Touch-Shnuggle/39221" },
@@ -287,7 +287,7 @@ const DATA = [
     { name: "Zabawka kontrastowa — opcja 2", link: "https://www.dobreliski.pl/pl/p/Duze-karty-kontrastowe-0-mies.-3-mies.-CzuCzu-Bright-Junior-Media-Justyna-Han/41407" },
     { name: "Książka kontrastowa (1 szt.)" },
     { name: "Szmatka / przytulanka (1 szt.)" },
-    { name: "Miś szumiś (1 szt.)", link: "https://babyandmam.pl/moonie-szumiacy-mis-organic-z-lampka-nocna-sand-natur" },
+    { name: "Miś szumiś (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Moonie-NATUR-2.0-szumiacy-mis-z-lampka-POLAR/33117" },
   ]},
   { category: "Poza domem", items: [
     { name: "Wózek" },
@@ -316,6 +316,19 @@ const db = firebase.database();
 const claimsRef = db.ref('claims');
 let claims = {};
 let openClaimFormId = null;
+
+// Anonymous visit log — just a timestamp, no name/IP/identity involved.
+// Throttled so refreshing the page repeatedly doesn't spam the log.
+(function logVisit(){
+  try{
+    const THIRTY_MIN = 30 * 60 * 1000;
+    const last = Number(localStorage.getItem('lastVisitLogged') || 0);
+    if (Date.now() - last > THIRTY_MIN) {
+      db.ref('visits').push({ ts: Date.now() }).catch(() => { /* non-critical, ignore */ });
+      localStorage.setItem('lastVisitLogged', String(Date.now()));
+    }
+  }catch(e){ /* ignore — never block the page on this */ }
+})();
 
 // Items claimed BY THIS BROWSER — stored locally, only affects how it looks to you.
 // This is what lets us show "Zaklepane przez Ciebie" and only let you undo your own claims.
