@@ -82,10 +82,12 @@
     font-weight: 600;
     font-size: 18px;
     color: var(--ink);
-    margin-bottom: 8px;
+    margin-bottom: 0;
     display:flex;
     align-items: baseline;
     gap: 8px;
+    cursor: pointer;
+    user-select: none;
   }
   .person-count{
     font-family: 'Jost', sans-serif;
@@ -93,7 +95,15 @@
     font-weight: 400;
     color: var(--ink-soft);
   }
-  .person-items{ font-size: 14.5px; color: var(--ink-soft); }
+  .person-chevron{
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--blue);
+    transition: transform .2s ease;
+  }
+  .person-card.is-open .person-chevron{ transform: rotate(180deg); }
+  .person-items{ font-size: 14.5px; color: var(--ink-soft); margin-top: 8px; display: none; }
+  .person-card.is-open .person-items{ display: block; }
   .person-items div{ padding: 3px 0; }
   .person-items div::before{ content: "· "; color: var(--blue); }
 
@@ -170,7 +180,6 @@
 
   <h2 class="section-title">Ostatnie wejścia na stronę</h2>
   <div class="visits-card" id="visits"></div>
-
 </div>
 
 <script>
@@ -329,6 +338,7 @@ const summaryEl = document.getElementById('summary');
 const showAllActivityBtn = document.getElementById('showAllActivityBtn');
 let isActivityExpanded = false;
 let lastClaims = {};
+const expandedPeople = new Set(); // names currently expanded — starts empty, i.e. all collapsed
 
 showAllActivityBtn.addEventListener('click', () => {
   isActivityExpanded = !isActivityExpanded;
@@ -365,12 +375,25 @@ function render(claims){
 
   Object.keys(byPerson).sort((a, b) => a.localeCompare(b, 'pl')).forEach(name => {
     const items = byPerson[name];
+    const isOpen = expandedPeople.has(name);
     const card = document.createElement('div');
-    card.className = 'person-card';
+    card.className = 'person-card' + (isOpen ? ' is-open' : '');
     card.innerHTML = `
-      <div class="person-name">${escapeHtml(name)} <span class="person-count">(${items.length})</span></div>
+      <div class="person-name">
+        <span>${escapeHtml(name)}</span>
+        <span class="person-count">(${items.length})</span>
+        <span class="person-chevron">▾</span>
+      </div>
       <div class="person-items">${items.map(n => `<div>${escapeHtml(n)}</div>`).join('')}</div>
     `;
+    card.querySelector('.person-name').addEventListener('click', () => {
+      if (expandedPeople.has(name)) {
+        expandedPeople.delete(name);
+      } else {
+        expandedPeople.add(name);
+      }
+      render(lastClaims);
+    });
     byPersonEl.appendChild(card);
   });
 
