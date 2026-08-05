@@ -154,7 +154,7 @@
     <img src="image.png" alt="Zaproszenie Baby Shower" class="hero-image">
   </div>
   <div class="divider"><span class="rope"></span><span class="heart">♥</span><span class="rope"></span></div>
-  <p class="subtitle">Zapraszamy Was serdecznie na Baby Shower — poniżej znajdziecie listę rzeczy do wyprawki. Jeśli chcecie coś podarować, zarezerwujcie to dla siebie, żebyśmy uniknęli powtórek. Dziękujemy! 💙</p>
+  <p class="subtitle">Zapraszamy Was serdecznie na Baby Shower! Poniżej znajdziecie listę rzeczy do wyprawki. Jeśli chcecie coś podarować, zarezerwujcie to dla siebie, żebyśmy uniknęli powtórek. Dziękujemy! 💙</p>
   <p class="event-line">6 września 2026 · Wigwam - Łysa Góra, Kicin</p>
 </header>
 
@@ -324,10 +324,11 @@ let openClaimFormId = null;
     const THIRTY_MIN = 30 * 60 * 1000;
     const last = Number(localStorage.getItem('lastVisitLogged') || 0);
     if (Date.now() - last > THIRTY_MIN) {
-      db.ref('visits').push({ ts: Date.now() }).catch(() => { /* non-critical, ignore */ });
-      localStorage.setItem('lastVisitLogged', String(Date.now()));
+      db.ref('visits').push({ ts: Date.now() })
+        .then(() => { localStorage.setItem('lastVisitLogged', String(Date.now())); })
+        .catch((err) => { console.error('Nie udało się zapisać wejścia (sprawdź reguły Firebase dla "visits")', err); });
     }
-  }catch(e){ /* ignore — never block the page on this */ }
+  }catch(e){ console.error('Błąd logowania wejścia', e); }
 })();
 
 // Items claimed BY THIS BROWSER — stored locally, only affects how it looks to you.
