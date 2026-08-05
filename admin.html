@@ -188,12 +188,11 @@
   <div class="activity-card" id="activity"></div>
   <button type="button" class="show-all-btn" id="showAllActivityBtn">Pokaż wszystkie</button>
 
+  <h2 class="section-title">Ostatnie wejścia na stronę</h2>
+  <div class="visits-card" id="visits"></div>
+
   <h2 class="section-title">Rezerwacje wg osoby</h2>
   <div id="byPerson"><div class="loading">Wczytywanie…</div></div>
-
-  <h2 class="section-title">Ostatnie wejścia na stronę</h2>
-  <p class="my-id-note" id="myIdNote"></p>
-  <div class="visits-card" id="visits"></div>
 </div>
 
 <script>
@@ -441,18 +440,11 @@ function render(claims){
 }
 
 const visitsEl = document.getElementById('visits');
-const myIdNoteEl = document.getElementById('myIdNote');
 
 // Same-origin as index.html, so if this browser ever visited the main site,
 // its visitor ID is already sitting in localStorage — we can read it here too.
 let myVisitorId = null;
 try{ myVisitorId = localStorage.getItem('siteVisitorId'); }catch(e){ /* ignore */ }
-
-if (myVisitorId) {
-  myIdNoteEl.innerHTML = `Twoje ID na tym urządzeniu: <b>${escapeHtml(myVisitorId)}</b> — wpisy z tym ID poniżej są podświetlone.`;
-} else {
-  myIdNoteEl.textContent = 'To urządzenie nie odwiedziło jeszcze głównej strony, więc nie mamy dla niego ID.';
-}
 
 function renderVisits(visits){
   visitsEl.innerHTML = '';
