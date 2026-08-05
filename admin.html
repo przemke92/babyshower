@@ -113,6 +113,21 @@
   .activity-row .when{ display:block; font-size: 11.5px; color: var(--ink-soft); margin-bottom: 2px; }
   .activity-row .what b{ color: var(--blue-deep); font-weight: 500; }
 
+  .show-all-btn{
+    display:block;
+    margin: 0 0 40px auto;
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--blue-deep);
+    background: transparent;
+    border: 1px solid var(--blue);
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .show-all-btn:hover{ background: var(--blue-pale); }
+
   .empty{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 20px 0 30px; }
 
   .visits-card{
@@ -144,15 +159,18 @@
 <body>
 <div class="wrap">
   <h1>Podgląd rezerwacji</h1>
+  <p class="lead"></p>
   <div class="summary" id="summary">Ładowanie…</div>
+
+  <h2 class="section-title">Ostatnie akcje</h2>
+  <div class="activity-card" id="activity"></div>
+  <button type="button" class="show-all-btn" id="showAllActivityBtn">Pokaż wszystkie</button>
 
   <h2 class="section-title">Rezerwacje wg osoby</h2>
   <div id="byPerson"><div class="loading">Wczytywanie…</div></div>
 
-  <h2 class="section-title">Ostatnie akcje</h2>
-  <div class="activity-card" id="activity"></div>
-
   <h2 class="section-title">Ostatnie wejścia na stronę</h2>
+  <p class="lead" style="margin-bottom:16px; font-size:14px;">Tylko daty i godziny — bez adresów IP ani danych osobowych.</p>
   <div class="visits-card" id="visits"></div>
 
 </div>
@@ -310,8 +328,17 @@ function findItemById(id){
 const byPersonEl = document.getElementById('byPerson');
 const activityEl = document.getElementById('activity');
 const summaryEl = document.getElementById('summary');
+const showAllActivityBtn = document.getElementById('showAllActivityBtn');
+let isActivityExpanded = false;
+let lastClaims = {};
+
+showAllActivityBtn.addEventListener('click', () => {
+  isActivityExpanded = !isActivityExpanded;
+  render(lastClaims);
+});
 
 function render(claims){
+  lastClaims = claims;
   byPersonEl.innerHTML = '';
   activityEl.innerHTML = '';
 
@@ -324,6 +351,7 @@ function render(claims){
   if (entries.length === 0) {
     byPersonEl.innerHTML = '<div class="empty">Nikt jeszcze nic nie zarezerwował.</div>';
     activityEl.innerHTML = '<div class="empty">Brak aktywności.</div>';
+    showAllActivityBtn.style.display = 'none';
     return;
   }
 
@@ -357,7 +385,9 @@ function render(claims){
     .filter(Boolean)
     .sort((a, b) => b.ts - a.ts);
 
-  activity.forEach(a => {
+  const visibleActivity = isActivityExpanded ? activity : activity.slice(0, 5);
+
+  visibleActivity.forEach(a => {
     const row = document.createElement('div');
     row.className = 'activity-row';
     row.innerHTML = `
@@ -366,6 +396,13 @@ function render(claims){
     `;
     activityEl.appendChild(row);
   });
+
+  if (activity.length > 5) {
+    showAllActivityBtn.style.display = 'block';
+    showAllActivityBtn.textContent = isActivityExpanded ? 'Pokaż mniej' : `Pokaż wszystkie (${activity.length})`;
+  } else {
+    showAllActivityBtn.style.display = 'none';
+  }
 }
 
 const visitsEl = document.getElementById('visits');
