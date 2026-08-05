@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Podgląd rezerwacji</title>
+<title>Podgląd rezerwacji — tylko dla Was</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -115,6 +115,21 @@
 
   .empty{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 20px 0 30px; }
 
+  .visits-card{
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 4px 20px;
+    margin-bottom: 40px;
+  }
+  .visit-row{
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .visit-row:last-child{ border-bottom: none; }
+
   .loading{ text-align:center; color: var(--ink-soft); font-family: 'Cormorant Garamond', serif; font-style: italic; padding: 40px 0; }
   .note{
     text-align:center;
@@ -129,6 +144,7 @@
 <body>
 <div class="wrap">
   <h1>Podgląd rezerwacji</h1>
+  <p class="lead">Tylko dla Was — nie udostępniajcie tego linku gościom 🙂</p>
   <div class="summary" id="summary">Ładowanie…</div>
 
   <h2 class="section-title">Rezerwacje wg osoby</h2>
@@ -136,6 +152,9 @@
 
   <h2 class="section-title">Ostatnie akcje</h2>
   <div class="activity-card" id="activity"></div>
+
+  <h2 class="section-title">Ostatnie wejścia na stronę</h2>
+  <div class="visits-card" id="visits"></div>
 
   <p class="note">To jest widok tylko do odczytu — nic tu nie da się kliknąć ani zmienić.</p>
 </div>
@@ -351,6 +370,30 @@ function render(claims){
   });
 }
 
+const visitsEl = document.getElementById('visits');
+
+function renderVisits(visits){
+  visitsEl.innerHTML = '';
+  const list = Object.values(visits).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+  if (list.length === 0) {
+    visitsEl.innerHTML = '<div class="empty">Brak zarejestrowanych wejść.</div>';
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'visit-row';
+  header.innerHTML = `<b>Ostatnie wejście:</b> ${formatTs(list[0].ts)} &nbsp;·&nbsp; łącznie zarejestrowanych wejść: <b>${list.length}</b>`;
+  visitsEl.appendChild(header);
+
+  list.slice(0, 30).forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'visit-row';
+    row.textContent = formatTs(v.ts);
+    visitsEl.appendChild(row);
+  });
+}
+
 try{
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
@@ -359,6 +402,11 @@ try{
   }, (err) => {
     summaryEl.textContent = 'Błąd wczytywania danych — sprawdź połączenie.';
     console.error(err);
+  });
+  db.ref('visits').on('value', (snapshot) => {
+    renderVisits(snapshot.val() || {});
+  }, (err) => {
+    console.error('Błąd wczytywania wejść', err);
   });
 }catch(e){
   summaryEl.textContent = 'Błąd inicjalizacji Firebase.';
