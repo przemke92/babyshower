@@ -349,17 +349,34 @@ function getDeviceLabel(){
   return `${device}, ${browser}`;
 }
 
+// Fire-and-forget push notification via ntfy.sh — no backend needed.
+// If this fails (e.g. blocked by an ad-blocker), nothing else on the page is affected.
+const NTFY_TOPIC = 'babyshowerjanek-rezerwacje-8k2p';
+function sendNtfy(title, message){
+  try{
+    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: 'POST',
+      body: message,
+      headers: { 'Title': title },
+    }).catch((err) => { console.error('ntfy: nie udało się wysłać powiadomienia', err); });
+  }catch(e){ console.error('ntfy: błąd przy wysyłce powiadomienia', e); }
+}
+
 (function logVisit(){
   try{
     const VISIT_THROTTLE = 10 * 60 * 1000;
     const last = Number(localStorage.getItem('lastVisitLogged') || 0);
     if (Date.now() - last > VISIT_THROTTLE) {
+      const device = getDeviceLabel();
       db.ref('visits').push({
         ts: Date.now(),
         visitorId: getOrCreateVisitorId(),
-        device: getDeviceLabel(),
+        device,
       })
-        .then(() => { localStorage.setItem('lastVisitLogged', String(Date.now())); })
+        .then(() => {
+          localStorage.setItem('lastVisitLogged', String(Date.now()));
+          sendNtfy('Nowe wejście na stronę', `Ktoś wszedł na stronę (${device})`);
+        })
         .catch((err) => { console.error('Nie udało się zapisać wejścia (sprawdź reguły Firebase dla "visits")', err); });
     }
   }catch(e){ console.error('Błąd logowania wejścia', e); }
@@ -464,17 +481,8 @@ function findItemById(id){
   return null;
 }
 
-// Fire-and-forget push notification via ntfy.sh — no backend needed.
-// If this fails (e.g. blocked by an ad-blocker), the reservation itself is unaffected.
-const NTFY_TOPIC = 'babyshowerjanek-rezerwacje-8k2p';
 function notifyHost(item, name){
-  try{
-    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-      method: 'POST',
-      body: `${name} zarezerwował(a): ${item.name}`,
-      headers: { 'Title': 'Nowa rezerwacja' },
-    }).catch((err) => { console.error('ntfy: nie udało się wysłać powiadomienia', err); });
-  }catch(e){ console.error('ntfy: błąd przy wysyłce powiadomienia', e); }
+  sendNtfy('Nowa rezerwacja', `${name} zarezerwował(a): ${item.name}`);
 }
 
 function render(){
