@@ -351,9 +351,9 @@ function getDeviceLabel(){
 
 (function logVisit(){
   try{
-    const THIRTY_MIN = 30 * 60 * 1000;
+    const VISIT_THROTTLE = 10 * 60 * 1000;
     const last = Number(localStorage.getItem('lastVisitLogged') || 0);
-    if (Date.now() - last > THIRTY_MIN) {
+    if (Date.now() - last > VISIT_THROTTLE) {
       db.ref('visits').push({
         ts: Date.now(),
         visitorId: getOrCreateVisitorId(),
