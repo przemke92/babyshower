@@ -446,7 +446,30 @@ const visitsEl = document.getElementById('visits');
 let myVisitorId = null;
 try{ myVisitorId = localStorage.getItem('siteVisitorId'); }catch(e){ /* ignore */ }
 
+let isOlderVisitsExpanded = false;
+let lastVisits = {};
+
+function isToday(ts){
+  const d = new Date(ts);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+         d.getMonth() === now.getMonth() &&
+         d.getDate() === now.getDate();
+}
+
+function buildVisitRow(v){
+  const isYou = myVisitorId && v.visitorId === myVisitorId;
+  const row = document.createElement('div');
+  row.className = 'visit-row' + (isYou ? ' is-you' : '');
+  row.innerHTML = `
+    <span>${formatTs(v.ts)}${isYou ? ' <b>(Ty)</b>' : ''}</span>
+    <span class="device">${escapeHtml(v.device || '—')}</span>
+  `;
+  return row;
+}
+
 function renderVisits(visits){
+  lastVisits = visits;
   visitsEl.innerHTML = '';
   const list = Object.values(visits).sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
@@ -455,21 +478,38 @@ function renderVisits(visits){
     return;
   }
 
+  const todayList = list.filter(v => isToday(v.ts));
+  const olderList = list.filter(v => !isToday(v.ts));
+
   const header = document.createElement('div');
   header.className = 'visit-row';
   header.innerHTML = `<span><b>Ostatnie wejście:</b> ${formatTs(list[0].ts)}</span><span>łącznie: <b>${list.length}</b></span>`;
   visitsEl.appendChild(header);
 
-  list.slice(0, 30).forEach(v => {
-    const isYou = myVisitorId && v.visitorId === myVisitorId;
-    const row = document.createElement('div');
-    row.className = 'visit-row' + (isYou ? ' is-you' : '');
-    row.innerHTML = `
-      <span>${formatTs(v.ts)}${isYou ? ' <b>(Ty)</b>' : ''}</span>
-      <span class="device">${escapeHtml(v.device || '—')}</span>
-    `;
-    visitsEl.appendChild(row);
-  });
+  todayList.forEach(v => visitsEl.appendChild(buildVisitRow(v)));
+
+  if (todayList.length === 0) {
+    const emptyToday = document.createElement('div');
+    emptyToday.className = 'visit-row';
+    emptyToday.innerHTML = '<span>Brak wejść dzisiaj.</span><span></span>';
+    visitsEl.appendChild(emptyToday);
+  }
+
+  if (olderList.length > 0) {
+    if (isOlderVisitsExpanded) {
+      olderList.slice(0, 30).forEach(v => visitsEl.appendChild(buildVisitRow(v)));
+    }
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'show-all-btn';
+    toggleBtn.style.margin = '12px 0';
+    toggleBtn.textContent = isOlderVisitsExpanded ? 'Ukryj starsze' : `Pokaż starsze (${olderList.length})`;
+    toggleBtn.addEventListener('click', () => {
+      isOlderVisitsExpanded = !isOlderVisitsExpanded;
+      renderVisits(lastVisits);
+    });
+    visitsEl.appendChild(toggleBtn);
+  }
 }
 
 try{
