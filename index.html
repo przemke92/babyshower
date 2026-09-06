@@ -6,630 +6,87 @@
 <title>Baby Shower w Kicinie!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --cream: #fdfbf7;
-    --cream-2: #f2ecdf;
     --ink: #3a352f;
     --ink-soft: #6b6459;
     --blue: #7c94a8;
     --blue-deep: #55738b;
-    --blue-pale: #e4ebf0;
     --line: #d9cfc0;
-    --free: #6b8f71;
-    --taken: #b0724f;
   }
 
   *{ box-sizing: border-box; }
   html{ scroll-behavior: smooth; }
-  body{ margin:0; background: var(--cream); color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300; line-height: 1.5; padding-bottom: 56px; }
+  body{
+    margin:0;
+    min-height: 100vh;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+  }
 
-  /* --- HERO TEXT HEADER --- */
-  header.hero{ text-align: center; padding: 44px 20px 30px; }
-  .script{ font-family: 'Pinyon Script', cursive; font-size: clamp(52px, 11vw, 92px); color: var(--blue-deep); line-height: 1; margin: 0; }
-  .title{ font-family: 'Cormorant Garamond', serif; font-weight: 600; letter-spacing: 0.22em; font-size: clamp(26px, 6vw, 46px); margin: 6px 0 0; color: var(--ink); }
-  .subtitle{ margin-top: 20px; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(17px, 3vw, 21px); color: var(--ink-soft); max-width: 560px; margin-left: auto; margin-right: auto; }
-  .event-line{ font-family: 'Cormorant Garamond', serif; font-weight: 600; color: var(--blue-deep); font-size: clamp(18px, 3.4vw, 23px); margin-top: 6px; }
-  .divider{ display:flex; align-items:center; justify-content:center; gap: 14px; margin: 24px auto; max-width: 420px; }
+  .wrap{ max-width: 620px; margin: 0 auto; padding: 40px 24px 60px; text-align: center; }
+
+  .script{
+    font-family: 'Pinyon Script', cursive;
+    font-size: clamp(52px, 11vw, 92px);
+    color: var(--blue-deep);
+    line-height: 1;
+    margin: 0;
+  }
+  .title{
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    font-size: clamp(26px, 6vw, 46px);
+    margin: 6px 0 0;
+    color: var(--ink);
+  }
+
+  .divider{ display:flex; align-items:center; justify-content:center; gap: 14px; margin: 26px auto; max-width: 420px; }
   .divider .rope{ height:1px; flex:1; background: var(--blue); opacity: 0.55; }
   .divider .heart{ color: var(--blue-deep); font-size: 17px; }
 
-  .hero-image-wrap{ width: 100%; max-width: 440px; margin: 22px auto 0; }
-  .hero-image{ width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 0; box-shadow: none; }
+  .hero-image-wrap{ width: 100%; max-width: 380px; margin: 4px auto 30px; }
+  .hero-image{ width: 100%; height: auto; display: block; margin: 0 auto; }
 
-  .wrap{ max-width: 900px; margin: 0 auto; padding: 20px 20px 80px; }
-
-  /* --- ORIGINAL STYLES (rows tightened slightly) --- */
-  .progress-card{ background: white; border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px; display:flex; align-items:center; gap: 18px; margin-bottom: 26px; flex-wrap: wrap; }
-  .progress-text{ font-size: 14px; color: var(--ink-soft); white-space: nowrap; }
-  .progress-text b{ color: var(--ink); font-weight: 500;}
-  .progress-track{ flex: 1; min-width: 120px; height: 8px; background: var(--blue-pale); border-radius: 6px; overflow: hidden; }
-  .progress-fill{ height: 100%; background: var(--blue); border-radius: 6px; transition: width .4s ease; }
-  .search-box{ width: 100%; padding: 11px 16px; border-radius: 10px; border: 1px solid var(--line); background: white; font-size: 16px; margin-bottom: 30px; font-family: 'Jost', sans-serif; }
-  .category{ margin-bottom: 34px; }
-  .category-title{ font-family: 'Cormorant Garamond', serif; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; font-size: 19px; color: var(--blue-deep); display:flex; align-items:center; gap: 14px; margin-bottom: 12px; cursor: pointer; user-select: none; }
-  .category-title::after{ content:""; flex:1; height:1px; background: var(--line); }
-  .category-title .chevron{ order: 3; font-size: 13px; transition: transform .2s ease; flex-shrink: 0; }
-  .category-title.is-open .chevron{ transform: rotate(180deg); }
-  .category-title .toggle-label{ order: 4; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.05em; text-transform: none; color: var(--ink-soft); flex-shrink: 0; }
-  .category-count{ order: 2; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0; color: var(--ink-soft); flex-shrink: 0; }
-  .items.is-collapsed{ display: none; }
-  .expand-all-btn{ display:block; margin: 0 0 24px auto; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; color: var(--blue-deep); background: transparent; border: 1px solid var(--blue); border-radius: 8px; padding: 7px 16px; cursor: pointer; }
-  .expand-all-btn:hover{ background: var(--blue-pale); }
-  .items{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  @media (max-width: 620px){ .items{ grid-template-columns: 1fr; } }
-  .item{ background: white; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display:flex; flex-direction: column; gap: 6px; }
-  .item.is-taken{ background: var(--cream-2); }
-  .item-top{ display:flex; align-items:flex-start; justify-content: space-between; gap: 10px; font-size: 14px; }
-  .item-name{ flex: 1; }
-  .badge{ font-size: 10px; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
-  .badge.free{ color: var(--free); border: 1px solid var(--free); }
-  .badge.taken{ color: white; background: var(--taken); }
-  .badge.mine{ color: white; background: var(--blue-deep); }
-  .item.is-mine{ background: var(--blue-pale); border-color: var(--blue); }
-
-  .my-section{ margin-bottom: 40px; }
-  .my-section .category-title{ cursor: default; }
-  .my-section .category-title::after{ background: var(--blue); opacity: 0.4; }
-  .my-section .category-title .chevron,
-  .my-section .category-title .toggle-label{ display: none; }
-
-  /* --- Sticky "my reservations" cart bar --- */
-  #myCartBar{
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 60;
-    display: none; /* toggled to flex/block via JS once something is reserved */
-    flex-direction: column;
-    background: var(--cream, #faf6f0);
-    border-top: 1px solid var(--blue);
-    box-shadow: 0 -6px 20px rgba(58,53,47,0.12);
+  .message{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(19px, 4vw, 24px);
+    color: var(--ink-soft);
+    max-width: 480px;
+    margin: 0 auto;
   }
-  #myCartBar.is-visible{ display: flex; }
 
-  .cart-toggle{
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 13px 18px;
-    background: var(--blue-deep);
-    color: white;
-    border: none;
-    font-family: 'Jost', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: left;
-  }
-  .cart-toggle .cart-icon{ font-size: 17px; }
-  .cart-toggle .cart-label{ flex: 1; }
-  .cart-toggle .cart-count{
-    background: white;
-    color: var(--blue-deep);
-    border-radius: 20px;
-    padding: 2px 10px;
-    font-size: 13px;
+  .signoff{
+    font-family: 'Cormorant Garamond', serif;
     font-weight: 600;
+    color: var(--blue-deep);
+    font-size: clamp(18px, 3.4vw, 22px);
+    margin-top: 26px;
   }
-  .cart-toggle .cart-chevron{ font-size: 13px; transition: transform .2s ease; }
-  #myCartBar.is-open .cart-chevron{ transform: rotate(180deg); }
-
-  .cart-panel{
-    max-height: 0;
-    overflow-y: auto;
-    transition: max-height .25s ease;
-    background: white;
-    padding: 0 16px;
-  }
-  #myCartBar.is-open .cart-panel{
-    max-height: min(50vh, 420px);
-    padding: 14px 16px;
-    border-top: 1px solid var(--line);
-  }
-  .cart-panel .item{ margin-bottom: 10px; }
-  .cart-panel .item:last-child{ margin-bottom: 0; }
-  .item-link a{ font-size: 12px; color: var(--blue-deep); text-decoration: none; border-bottom: 1px solid var(--blue); }
-  .item-bottom{ display:flex; align-items:center; justify-content: space-between; gap: 10px; margin-top: 2px; }
-  .taken-by{ font-size: 12px; color: var(--ink-soft); }
-  button.claim-btn, button.release-btn{ font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 8px; cursor: pointer; border: 1px solid var(--blue); }
-  button.claim-btn{ background: var(--blue); color: white; }
-  button.release-btn{ background: transparent; border-color: var(--line); color: var(--ink-soft); }
-  .empty-state{ color: var(--ink-soft); font-size: 14px; padding: 20px 0; }
-
-  /* inline claim form */
-  .claim-form{ display:flex; gap: 6px; margin-top: 2px; }
-  .claim-form input{ flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); font-family: 'Jost', sans-serif; font-size: 16px; }
-  .claim-form button{ font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; cursor: pointer; border: 1px solid var(--blue); background: var(--blue); color: white; white-space: nowrap; }
 </style>
 </head>
 <body>
-
-<header class="hero">
+<div class="wrap">
   <p class="script">It's a boy!</p>
   <p class="title">BABY&nbsp;SHOWER</p>
+
   <div class="hero-image-wrap">
-    <img src="image.png" alt="Zaproszenie Baby Shower" class="hero-image">
+    <img src="image.png" alt="Baby Shower">
   </div>
+
   <div class="divider"><span class="rope"></span><span class="heart">♥</span><span class="rope"></span></div>
-  <p class="subtitle">Zapraszamy Was serdecznie na Baby Shower. Poniżej znajdziecie listę rzeczy do wyprawki. Jeśli chcecie coś podarować, zarezerwujcie to dla siebie, żebyśmy uniknęli powtórek. Dziękujemy! 💙</p>
-  <p class="event-line">6 września 2026 · Wigwam - Łysa Góra, Kicin</p>
-</header>
 
-<div class="wrap">
-  <div class="progress-card">
-    <span class="progress-text" id="progressText"><b>0</b> z <b>0</b> rzeczy zarezerwowanych</span>
-    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-  </div>
+  <p class="message">Baby Shower już za nami! Dziękujemy z całego serca, że byliście z nami tego dnia — Wasza obecność i ciepło znaczyły dla nas naprawdę wiele.</p>
 
-  <input type="text" class="search-box" id="searchBox" placeholder="Szukaj produktu (np. wózek, kocyk, body)…">
-
-  <button type="button" class="expand-all-btn" id="expandAllBtn">Rozwiń wszystkie</button>
-
-  <div id="categories"></div>
+  <p class="signoff">Do zobaczenia! 💙</p>
 </div>
-
-<div id="myCartBar">
-  <div class="cart-panel" id="cartPanel"></div>
-  <button type="button" id="cartToggleBtn" class="cart-toggle">
-    <span class="cart-icon">🎁</span>
-    <span class="cart-label">Twoje rezerwacje</span>
-    <span class="cart-count" id="cartCount">0</span>
-    <span class="cart-chevron" id="cartChevron">▴</span>
-  </button>
-</div>
-
-<script>
-const DATA = [
-  { category: "Tkaniny — kocyki, otulacze, pieluszki", items: [
-    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 1", link: "https://www.dobreliski.pl/pl/p/Otulacz-ze-100-welny-merino-cream-premium-collection-My-Memi/31725" },
-    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 2", link: "https://www.dobreliski.pl/pl/p/Kocyk-bambusowy-z-falbanka-85x105-cream-My-Memi/23901" },
-    { name: "Kocyk całoroczny (bambusowy lub bawełna) — opcja 3", link: "https://www.dobreliski.pl/pl/p/Lekki-dzianinowy-kocyk-mgielka-Niebieski-Lullalove/10910" },
-    { name: "Kocyk ocieplany - wełna merino (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Cieply-kocyk-ze-100-welny-merino-cream-premium-collection-My-Memi/31724" },
-    { name: "Rożek (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Rozek-BERRY-HENRY-La-Millou/43612" },
-    { name: "Otulacz 120x120 / naleśnik (2 szt.)" },
-    { name: "Pieluszka 30x30 — opcja 1", link: "https://www.dobreliski.pl/pl/p/Pieluszka-bambusowa-Classic-Ecru-bamboo-line/10764" },
-    { name: "Pieluszka 30x30 — opcja 2", link: "https://www.dobreliski.pl/pl/p/Pieluszka-bambusowa-Classic-Niebieski-bamboo-line/10766" },
-    { name: "Pieluszka 30x30 — opcja 3", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Little-Goose-Little-Dutch/44862" },
-    { name: "Pieluszka 30x30 — opcja 4", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Forest-Adventure-Denim-Blue-Little-Dutch/39357" },
-    { name: "Pieluszka 30x30 — opcja 5", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Pure-Denim-Blue-Little-Dutch/44860" },
-    { name: "Pieluszka 30x30 — opcja 6", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Baby-Bunny-Little-Dutch/44863" },
-    { name: "Pieluszka 75x75 — opcja 1", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Little-Goose-Little-Dutch/44862" },
-    { name: "Pieluszka 75x75 — opcja 2", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Forest-Adventure-Denim-Blue-Little-Dutch/39357" },
-    { name: "Pieluszka 75x75 — opcja 3", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Pure-Denim-Blue-Little-Dutch/44860" },
-    { name: "Pieluszka 75x75 — opcja 4", link: "https://www.dobreliski.pl/pl/p/Otulacze-muslinowe-70x70-cm-Baby-Bunny-Little-Dutch/44863" },
-    { name: "Otulacz do fotelika (1 szt.)", link: "https://muminky.pl/pl/p/Otulacz-Do-Fotelika-Samochodowego-z-Kapturkiem-Baranek-Ecru/1549" },
-    { name: "Poduszka do wózka (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Poduszka-antywstrzasowa-ANGELS-WINGS-TEDDY-BEAR-CREAM-La-Millou/38864" },
-    { name: "Prześcieradło do łóżeczka (2 szt.)", link: "https://manufakturamateracy.pl/przescieradlo-do-duzej-dostawki-lub-kolyski-dopasowane-z-gumka-na-materac" },
-    { name: "Prześcieradło do gondoli (2 szt.)", link: "https://www.dobreliski.pl/pl/p/Przescieradlo-do-gondoli-40x80-smietanka-Puuki/50024" },
-    { name: "Gniazdo niemowlęce (1 szt.)", link: "https://queenbaby.pl/pl/p/Kokon-niemowlecy-kokon-dla-dziecka-muslinowy-barankowy-baranek-zaklinacz-snow/420" },
-    { name: "Śpiworek do spania (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Spiworek-do-spania-TOG-2%2C5-BERRY-HENRY-La-Millou/43613" },
-    { name: "Śpiworek do wózka", link: "https://www.dobreliski.pl/pl/p/Spiworek-do-wozka-Baby-Multi-Teddy-Bear-CREAM-La-Millou/45623" },
-    { name: "Podkład pod prześcieradło (2 szt.)" },
-  ]},
-  { category: "Garderoba noworodka", items: [
-    { name: "Pajacyk rozm. 56 (3 szt.)" },
-    { name: "Pajacyk rozm. 62 (5 szt.)" },
-    { name: "Pajacyk rozm. 62/68" },
-    { name: "Body z długim rękawem, rozm. 56 (4 szt.)" },
-    { name: "Body z długim rękawem, rozm. 62 (6 szt.)" },
-    { name: "Body z krótkim rękawem, rozm. 56 (2 szt.)" },
-    { name: "Body z krótkim rękawem, rozm. 62 (4 szt.)" },
-    { name: "Półśpiochy / spodenki, rozm. 62 (4 szt.)" },
-    { name: "Bluza rozpinana, rozm. 62 (2 szt.)" },
-    { name: "Kombinezon polarowy (miś), rozm. 62-68 (1 szt.)", link: "https://eevi.pl/pl/p/Kombinezon-niemowlecy-baranek-jasny-bezowy/7031" },
-    { name: "Kombinezon zimowy ocieplany, rozm. 62-68 (1 szt.)", link: "https://hannaslove.pl/produkt/kombinezon-z-welny-merino-z-uszami-dust-melange-huttelihut/" },
-    { name: "Czapeczka bawełniana (2 szt.)" },
-    { name: "Czapeczka zimowa, rozm. 40 (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Podwojna-czapka-beanie-z-welny-merino-LATTE-Pink-no-more/43930" },
-    { name: "Chustka / szalik (1 szt.)" },
-    { name: "Skarpetki (4 szt.)" },
-    { name: "Body długi rękaw, rozm. 68" },
-    { name: "Rękawiczki" },
-    { name: "Spodnie rosnące, rozm. 56" },
-    { name: "Spodnie rosnące, rozm. 62" },
-  ]},
-  { category: "Pokój dziecięcy", items: [
-    { name: "Łóżeczko niemowlęce (1 szt.)" },
-    { name: "Materac do dostawki (1 szt.)", link: "https://allegro.pl/oferta/materac-do-dostawki-pasuje-do-kinderkraft-neste-up-grow-air-cami-12838109619" },
-    { name: "Lampka nocna (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Duza-lampka-led-z-PILOTEM-MIS-NIEBIESKI-bezpieczna-dla-Twojego-dziecka-Rabbitfriends/11731" },
-    { name: "Organizer na kosmetyki (1 szt.)" },
-    { name: "Dostawka do łóżka (1 szt.)" },
-    { name: "Kosz na pieluchy (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Kosz-na-pieluchy-Eco-Touch-Shnuggle/39221" },
-    { name: "Podgrzewacz do butelek (1 szt.)" },
-    { name: "Niania elektroniczna (1 szt.)" },
-    { name: "Wanienka (1 szt.)", link: "https://mamabrum.eu/1291-skladana-wanienka-dla-dziecka-8w1-ze-stojakiem-lezaczkiem-termometrem-i-akcesoriami-szara-dla-n" },
-    { name: "Wkład do wanienki (1 szt.)" },
-    { name: "Butelka z funkcją grzania na spacery (1 szt.)" },
-    { name: "Stojak do wanienki (1 szt.)" },
-    { name: "Mata edukacyjna (1 szt.)", link: "https://kinderkraft.pl/produkty/4smart?color=wielokolorowy" },
-    { name: "Sterylizator (1 szt.)" },
-    { name: "Przewijak (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Przewijak-MATTY%2C-Cappuccino-LEANDER/24838" },
-    { name: "Pojemnik na mokre chusteczki (1 szt.)" },
-  ]},
-  { category: "Higiena / pielęgnacja / apteczka", items: [
-    { name: "Pampersy, rozm. 1 (1 szt.)" },
-    { name: "Pampersy, rozm. 2 (2 szt.)" },
-    { name: "Smoczek 0+ (2 szt.)" },
-    { name: "Mokre chusteczki (4 szt.)" },
-    { name: "Duże waciki (4 szt.)" },
-    { name: "Ręczniki z kapturkiem (2 szt.)", link: "https://www.dobreliski.pl/pl/p/Bambusowy-recznik-alpacas-My-Memi/48473" },
-    { name: "Olejek ze słodkich migdałów (2 szt.)" },
-    { name: "Mydełko od urodzenia (2 szt.)" },
-    { name: "Uniwersalny płyn do mycia (1 szt.)" },
-    { name: "Waciki, patyczki do uszu (1 szt.)" },
-    { name: "Gaziki jałowe (1 szt.)" },
-    { name: "Nożyczki do paznokci (1 szt.)" },
-    { name: "Aplikator do kataru (1 szt.)" },
-    { name: "Inhalator (1 szt.)" },
-    { name: "Termometr (1 szt.)" },
-    { name: "Lek przeciwgorączkowy (1 szt.)" },
-    { name: "Etui na smoczek (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Etui-na-smoczek-Kula-Ball-Powder-Blue-Mushie/22750" },
-    { name: "Termometr do wanny (1 szt.)" },
-    { name: "Myjka bambusowa (1 szt.)" },
-    { name: "Termofor z pestkami wiśni (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Termofor-Cherrypad-Minky-Piasek-Pustyni-Nature-solution/20820" },
-    { name: "Szczotka na ciemieniuchę (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Szczotka-na-ciemieniuche-dla-niemowlat-Lullalove/35556" },
-    { name: "Witamina D" },
-    { name: "Kropelki na kolki" },
-    { name: "Miękka szczotka do masażu głowy i ciała (1 szt.)" },
-    { name: "Sól fizjologiczna" },
-  ]},
-  { category: "Karmienie piersią", items: [
-    { name: "Laktator" },
-    { name: "Poduszka do karmienia", link: "https://www.lamillou.com/pl/poduszka-kura-babci-dany-velvet-bawena-country-berry.html" },
-    { name: "Wkładki laktacyjne jednorazowe (2 szt.)" },
-    { name: "Lanolina" },
-    { name: "Butelka 120 ml", link: "https://www.dobreliski.pl/pl/p/Zestaw-startowy-ZERO-ZERO-z-butelka-ze-smoczkiem-o-regulowanym-przeplywie-180-ml-Suavinex/16344" },
-  ]},
-  { category: "Pierwsze zabawki", items: [
-    { name: "Zabawka kontrastowa — opcja 1", link: "https://www.dobreliski.pl/pl/p/Dwustronna-ksiazeczka-sensoryczna-przytulny-mis-Taf-Toys/49811" },
-    { name: "Zabawka kontrastowa — opcja 2", link: "https://www.dobreliski.pl/pl/p/Duze-karty-kontrastowe-0-mies.-3-mies.-CzuCzu-Bright-Junior-Media-Justyna-Han/41407" },
-    { name: "Książka kontrastowa (1 szt.)" },
-    { name: "Szmatka / przytulanka (1 szt.)" },
-    { name: "Miś szumiś (1 szt.)", link: "https://www.dobreliski.pl/pl/p/Moonie-NATUR-2.0-szumiacy-mis-z-lampka-POLAR/33117" },
-  ]},
-  { category: "Poza domem", items: [
-    { name: "Wózek" },
-    { name: "Fotelik samochodowy" },
-    { name: "Baza do fotelika" },
-    { name: "Torba do wózka" },
-    { name: "Lusterko do samochodu" },
-  ]},
-];
-
-// Re-indexing logic
-DATA.forEach((cat, ci) => { cat.items.forEach((it, ii) => { it.id = "c" + ci + "i" + ii; }); });
-
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDjOGq7ZkPhFJBp4l75U6OuumQQzKirtJU",
-  authDomain: "babyshowerjanek.firebaseapp.com",
-  databaseURL: "https://babyshowerjanek-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "babyshowerjanek",
-  storageBucket: "babyshowerjanek.firebasestorage.app",
-  messagingSenderId: "602563291143",
-  appId: "1:602563291143:web:e96c040237dd72962e22a2",
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const claimsRef = db.ref('claims');
-let claims = {};
-let openClaimFormId = null;
-
-// Anonymous visit log — timestamp + a per-browser random ID + coarse device type.
-// No name, no IP, no exact identity — just enough to tell "was that me?" apart from a guest.
-// Throttled so refreshing the page repeatedly doesn't spam the log.
-
-function getOrCreateVisitorId(){
-  try{
-    let id = localStorage.getItem('siteVisitorId');
-    if (!id) {
-      id = 'v-' + Math.random().toString(36).slice(2, 8);
-      localStorage.setItem('siteVisitorId', id);
-    }
-    return id;
-  }catch(e){ return 'v-unknown'; }
-}
-
-function getDeviceLabel(){
-  const ua = navigator.userAgent || '';
-  let device = 'Komputer';
-  if (/iPhone/i.test(ua)) device = 'iPhone';
-  else if (/iPad/i.test(ua)) device = 'iPad';
-  else if (/Android/i.test(ua)) device = 'Android';
-
-  let browser = 'przeglądarka';
-  if (/Edg\//i.test(ua)) browser = 'Edge';
-  else if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) browser = 'Chrome';
-  else if (/CriOS/i.test(ua)) browser = 'Chrome';
-  else if (/FxiOS|Firefox/i.test(ua)) browser = 'Firefox';
-  else if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) browser = 'Safari';
-
-  return `${device}, ${browser}`;
-}
-
-// Fire-and-forget push notification via ntfy.sh — no backend needed.
-// If this fails (e.g. blocked by an ad-blocker), nothing else on the page is affected.
-const NTFY_TOPIC = 'babyshowerjanek-rezerwacje-8k2p';
-function sendNtfy(title, message){
-  try{
-    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-      method: 'POST',
-      body: message,
-      headers: { 'Title': title },
-    }).catch((err) => { console.error('ntfy: nie udało się wysłać powiadomienia', err); });
-  }catch(e){ console.error('ntfy: błąd przy wysyłce powiadomienia', e); }
-}
-
-(function logVisit(){
-  try{
-    const VISIT_THROTTLE = 10 * 60 * 1000;
-    const last = Number(localStorage.getItem('lastVisitLogged') || 0);
-    if (Date.now() - last > VISIT_THROTTLE) {
-      const device = getDeviceLabel();
-      db.ref('visits').push({
-        ts: Date.now(),
-        visitorId: getOrCreateVisitorId(),
-        device,
-      })
-        .then(() => {
-          localStorage.setItem('lastVisitLogged', String(Date.now()));
-          sendNtfy('Nowe Entry', `Ktoś wszedł na stronę (${device})`);
-        })
-        .catch((err) => { console.error('Nie udało się zapisać wejścia (sprawdź reguły Firebase dla "visits")', err); });
-    }
-  }catch(e){ console.error('Błąd logowania wejścia', e); }
-})();
-
-// Items claimed BY THIS BROWSER — stored locally, only affects how it looks to you.
-// This is what lets us show "Zaklepane przez Ciebie" and only let you undo your own claims.
-let myClaims = new Set();
-try{
-  myClaims = new Set(JSON.parse(localStorage.getItem('myClaims') || '[]'));
-}catch(e){
-  myClaims = new Set();
-}
-function saveMyClaims(){
-  try{ localStorage.setItem('myClaims', JSON.stringify([...myClaims])); }catch(e){ /* ignore */ }
-}
-
-const categoriesEl = document.getElementById('categories');
-const searchBox = document.getElementById('searchBox');
-const progressText = document.getElementById('progressText');
-const progressFill = document.getElementById('progressFill');
-const myCartBar = document.getElementById('myCartBar');
-const cartToggleBtn = document.getElementById('cartToggleBtn');
-const cartCountEl = document.getElementById('cartCount');
-const cartPanelEl = document.getElementById('cartPanel');
-let isCartOpen = false;
-
-// Which categories are manually expanded (by category name). Starts empty = all collapsed.
-const expandedCategories = new Set();
-
-function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function updateProgress(){
-  let total = 0, taken = 0;
-  DATA.forEach(cat => cat.items.forEach(it => {
-    total++;
-    if (claims[it.id]) taken++;
-  }));
-  progressText.innerHTML = `<b>${taken}</b> z <b>${total}</b> rzeczy zarezerwowanych`;
-  progressFill.style.width = total ? (taken / total * 100) + '%' : '0%';
-}
-
-function buildItemCard(it){
-  const taken = claims[it.id];
-  const isMine = taken && myClaims.has(it.id);
-  const itemEl = document.createElement('div');
-  itemEl.className = 'item' + (taken ? (isMine ? ' is-mine' : ' is-taken') : '');
-
-  let badgeClass = 'free', badgeText = 'Wolne';
-  if (isMine) { badgeClass = 'mine'; badgeText = 'Zarezerwowane przez Ciebie'; }
-  else if (taken) { badgeClass = 'taken'; badgeText = 'Zarezerwowane'; }
-
-  let html = `
-    <div class="item-top">
-      <span class="item-name">${escapeHtml(it.name)}</span>
-      <span class="badge ${badgeClass}">${badgeText}</span>
-    </div>
-  `;
-  if (it.link) {
-    html += `<div class="item-link"><a href="${it.link}" target="_blank" rel="noopener noreferrer">Zobacz propozycję</a></div>`;
-  }
-
-  if (isMine) {
-    html += `
-      <div class="item-bottom">
-        <span></span>
-        <button class="release-btn" data-id="${it.id}">Usuń rezerwację</button>
-      </div>
-    `;
-  } else if (taken) {
-    // Reserved by someone else — no name shown, no way to cancel it from here.
-    html += `<div class="item-bottom"><span></span></div>`;
-  } else if (openClaimFormId === it.id) {
-    html += `
-      <form class="claim-form" data-id="${it.id}">
-        <input type="text" placeholder="Twoje imię" required maxlength="40" autofocus>
-        <button type="submit">Potwierdź</button>
-      </form>
-    `;
-  } else {
-    html += `
-      <div class="item-bottom">
-        <span></span>
-        <button class="claim-btn" data-id="${it.id}">Rezerwuję</button>
-      </div>
-    `;
-  }
-
-  itemEl.innerHTML = html;
-  return itemEl;
-}
-
-function findItemById(id){
-  for (const cat of DATA) {
-    const found = cat.items.find(it => it.id === id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function notifyHost(item, name){
-  sendNtfy('Nowa rezerwacja', `${name} zarezerwował(a): ${item.name}`);
-}
-
-function render(){
-  const q = searchBox.value.trim().toLowerCase();
-  categoriesEl.innerHTML = '';
-  let anyVisible = false;
-
-  // --- Sticky "Twoje rezerwacje" bar — always reachable, even mid-scroll ---
-  const mine = [];
-  DATA.forEach(cat => cat.items.forEach(it => {
-    if (claims[it.id] && myClaims.has(it.id)) mine.push(it);
-  }));
-
-  if (mine.length > 0) {
-    myCartBar.classList.add('is-visible');
-    cartCountEl.textContent = mine.length;
-    cartPanelEl.innerHTML = '';
-    mine.forEach(it => cartPanelEl.appendChild(buildItemCard(it)));
-  } else {
-    myCartBar.classList.remove('is-visible');
-    myCartBar.classList.remove('is-open');
-    isCartOpen = false;
-  }
-
-  DATA.forEach(cat => {
-    const visibleItems = cat.items
-      .filter(it => it.name.toLowerCase().includes(q))
-      .slice()
-      .sort((a, b) => (claims[a.id] ? 1 : 0) - (claims[b.id] ? 1 : 0));
-    if (visibleItems.length === 0) return;
-    anyVisible = true;
-
-    const isSearching = q.length > 0;
-    const isOpen = isSearching || expandedCategories.has(cat.category);
-
-    const catEl = document.createElement('div');
-    catEl.className = 'category';
-
-    const title = document.createElement('div');
-    title.className = 'category-title' + (isOpen ? ' is-open' : '');
-    title.innerHTML = `
-      <span class="cat-name">${escapeHtml(cat.category)}</span>
-      <span class="category-count">${visibleItems.length}</span>
-      <span class="toggle-label">${isOpen ? 'zwiń' : 'rozwiń'}</span>
-      <span class="chevron">▾</span>
-    `;
-    if (!isSearching) {
-      title.addEventListener('click', () => {
-        if (expandedCategories.has(cat.category)) {
-          expandedCategories.delete(cat.category);
-        } else {
-          expandedCategories.add(cat.category);
-        }
-        render();
-      });
-    }
-    catEl.appendChild(title);
-
-    const itemsEl = document.createElement('div');
-    itemsEl.className = 'items' + (isOpen ? '' : ' is-collapsed');
-
-    visibleItems.forEach(it => itemsEl.appendChild(buildItemCard(it)));
-
-    catEl.appendChild(itemsEl);
-    categoriesEl.appendChild(catEl);
-  });
-
-  if (!anyVisible) {
-    categoriesEl.innerHTML = '<div class="empty-state">Brak pasujących produktów.</div>';
-  }
-
-  expandAllBtn.textContent = (expandedCategories.size === DATA.length) ? 'Zwiń wszystkie' : 'Rozwiń wszystkie';
-  expandAllBtn.style.display = q ? 'none' : 'block';
-
-  // wire up buttons/forms for this render pass
-  categoriesEl.querySelectorAll('.claim-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      openClaimFormId = btn.dataset.id;
-      render();
-    });
-  });
-
-  const releaseBtns = [
-    ...categoriesEl.querySelectorAll('.release-btn'),
-    ...cartPanelEl.querySelectorAll('.release-btn'),
-  ];
-  releaseBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (confirm('Na pewno usuwasz tę rezerwację?')) {
-        const id = btn.dataset.id;
-        delete claims[id]; // update local view immediately, don't wait for the round-trip
-        myClaims.delete(id);
-        saveMyClaims();
-        render();
-        claimsRef.child(id).remove();
-      }
-    });
-  });
-
-categoriesEl.querySelectorAll('.claim-form').forEach(form => {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = form.querySelector('input');
-      const name = input.value.trim();
-      if (!name) return;
-      const id = form.dataset.id;
-      const entry = { name, ts: Date.now() };
-      claims[id] = entry; // update local view immediately, don't wait for the round-trip
-      myClaims.add(id);
-      saveMyClaims();
-      openClaimFormId = null;
-      render();
-      claimsRef.child(id).set(entry);
-      const item = findItemById(id);
-      if (item) notifyHost(item, name);
-    });
-  });
-
-  myCartBar.classList.toggle('is-open', isCartOpen);
-
-  updateProgress();
-}
-
-cartToggleBtn.addEventListener('click', () => {
-  isCartOpen = !isCartOpen;
-  myCartBar.classList.toggle('is-open', isCartOpen);
-});
-
-claimsRef.on('value', (snapshot) => {
-  claims = snapshot.val() || {};
-  render();
-});
-
-searchBox.addEventListener('input', render);
-
-const expandAllBtn = document.getElementById('expandAllBtn');
-expandAllBtn.addEventListener('click', () => {
-  if (expandedCategories.size === DATA.length) {
-    expandedCategories.clear();
-  } else {
-    DATA.forEach(cat => expandedCategories.add(cat.category));
-  }
-  render();
-});
-
-render();
-</script>
-
 </body>
 </html>
